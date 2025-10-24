@@ -23,15 +23,20 @@ static unsigned char DecodeStack(unsigned int code, lzw_decoder_t *dec) {
     return firstChar;
 }
 
-void LZWInit(lzw_decoder_t *dec, unsigned int firstCode, int minCodeLen) {
+void LZWInit(lzw_decoder_t *dec, int minCodeLen) {
     dec->nextCode = FIRST_CODE;
     dec->currentCodeLen = minCodeLen;
-    dec->lastCode = firstCode;
-    dec->c = (unsigned char)firstCode;
     dec->stackSize = 0;
+    dec->ready = 0;
 }
 
 const unsigned char* LZWFeedCode(lzw_decoder_t *dec, unsigned int code, int *outSize) {
+    if (!dec->ready) {
+        dec->lastCode = code;
+        dec->c = code;
+        *outSize = 0;
+        return 0;
+    }
     unsigned char firstChar;
 
     if (code < dec->nextCode) {

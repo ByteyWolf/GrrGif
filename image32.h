@@ -11,3 +11,10 @@ struct frame32 {
     uint32_t* pixels; //width * height
     uint32_t delay;
 };
+
+struct gce_data {
+    uint16_t delay_time;
+    uint8_t transparent_index;
+    uint8_t disposal_method;
+    uint8_t transparent_color_flag;
+};
