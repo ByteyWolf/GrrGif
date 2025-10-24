@@ -2,14 +2,11 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
-#define RFAILED { perror("Failed to read file"); close(fd); return; }
-#define RFAILEDP { perror("Failed to read file"); close(fd); return 0; }
 
-#define PALETTE_GLOBAL 0
-#define PALETTE_LOCAL 1
+#include "gif.h"
+#include "../lzw/lzw.h"
+#include "../image32.h"
 
-#define IMAGE_DESCRIPTOR 0x2C
-#define GRAPHIC_CONTROL_EXTENSION 0x21
 
 uint32_t* process_palette(int fd, int num_entries, uint32_t* palette)
 {
@@ -33,10 +30,11 @@ uint32_t* process_palette(int fd, int num_entries, uint32_t* palette)
 }
 
 // until we can come up with a proper structure
-void parse(const char *filename)
+struct image32* parse(const char *filename)
 {
     uint32_t global_palette[256];
     uint32_t local_palette[256];
+    struct image32* img = malloc(sizeof(struct image32));
 
     uint8_t use_palette = 0;
     int crt_delay = 0;
@@ -95,7 +93,39 @@ void parse(const char *filename)
                 use_palette = PALETTE_LOCAL;
                 process_palette(fd, lct_entries, local_palette);
             }
-            // TODO
+
+            // is rendering time!!
+            uint32_t* frame = malloc(img_width * img_height * sizeof(uint32_t));
+            uint8_t lzw_min_code_size;
+            bytesRead = read(fd, &lzw_min_code_size, 1);
+            if (bytesRead < 1) RFAILEDP
+
+            if (!frame) RFAILEDP
+
+            lzw_decoder_t decoder;
+            LZWInit(&decoder, lzw_min_code_size);
+            uint32_t pixel_index = 0;
+
+            while (1) {
+                uint8_t sub_block_size;
+                bytesRead = read(fd, &sub_block_size, 1);
+                if (bytesRead < 1) {
+                    free(frame); free(img);
+                    RFAILEDP
+                }
+                if (sub_block_size == 0) break;
+                uint8_t* sub_block_data = malloc(sub_block_size);
+                if (!sub_block_data) { free(frame); free(img); RFAILEDP }
+                bytesRead = read(fd, sub_block_data, sub_block_size);
+                if (bytesRead < sub_block_size) { free(sub_block_data); free(frame); free(img); RFAILEDP }
+
+                for (int i = 0; i < sub_block_size; i++) {
+                    int outSize;
+                    const unsigned char* chunk = LZWFeedCode(&decoder, sub_block_data[i], &outSize);
+
+                    // iterate through decoded bytes and write them into canvas or something
+                }
+            }
         } else if (byte == GRAPHIC_CONTROL_EXTENSION) {
             uint8_t gce_block[7];
             bytesRead = read(fd, &gce_block, 1+5+1);
