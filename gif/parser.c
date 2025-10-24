@@ -2,6 +2,8 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "gif.h"
 #include "../lzw/lzw.h"
@@ -22,7 +24,7 @@ uint32_t* process_palette(int fd, int num_entries, uint32_t* palette)
     }
 
     for (int i = 0; i < num_entries; i++) {
-        palette[i] = (0xFF << 24) | (gct[3*i] << 16) | (gct[3*i + 1] << 8) | (gct[3*i + 2]);
+        palette[i] = (0xFFu << 24) | ((uint32_t)gct[3*i] << 16) | ((uint32_t)gct[3*i + 1] << 8) | (uint32_t)gct[3*i + 2];
     }
 
     free(gct);
@@ -94,12 +96,12 @@ struct image32* parse(const char *filename)
     // header
     uint8_t ver[6];
     ssize_t bytesRead = read(fd, ver, sizeof(ver));
-    if (bytesRead < 6 || (memcmp(ver, "GIF89a", 6) != 0 && memcmp(ver, "GIF87a", 6) != 0)) RFAILED
+    if (bytesRead < 6 || (memcmp(ver, "GIF89a", 6) != 0 && memcmp(ver, "GIF87a", 6) != 0)) RFAILEDP
 
     // logical screen descriptor or otherwise lsd (not the other lsd)
     uint8_t lsd[7];
     bytesRead = read(fd, lsd, sizeof(lsd));
-    if (bytesRead < 7) RFAILED
+    if (bytesRead < 7) RFAILEDP
 
     uint16_t width  = lsd[0] | (lsd[1] << 8);
     uint16_t height = lsd[2] | (lsd[3] << 8);
@@ -120,14 +122,14 @@ struct image32* parse(const char *filename)
     uint8_t byte;
     while (1) {
         bytesRead = read(fd, &byte, 1);
-        if (bytesRead < 1) RFAILED
+        if (bytesRead < 1) RFAILEDP
         if (byte == 0x3B) {
             printf("Reached trailer normally.\n");
             break;
         } else if (byte == IMAGE_DESCRIPTOR) {
             uint8_t img_desc[9];
             bytesRead = read(fd, img_desc, sizeof(img_desc));
-            if (bytesRead < 9) RFAILED
+            if (bytesRead < 9) RFAILEDP
             uint16_t img_left   = img_desc[0] | (img_desc[1] << 8);
             uint16_t img_top    = img_desc[2] | (img_desc[3] << 8);
             uint16_t img_width  = img_desc[4] | (img_desc[5] << 8);
@@ -178,14 +180,19 @@ struct image32* parse(const char *filename)
                     const unsigned char* chunk = LZWFeedCode(&decoder, sub_block_data[i], &outSize);
 
                     // iterate through decoded bytes and write them into canvas or something
-                    // BIG NOTE: CURRENTLY WE DO NOT HANDLE INTERLACING OR TOP/LEFT OFFSETS OR WIDTH/HEIGHT DIFFERENT FROM CANVAS
+                    // BIG NOTE: CURRENTLY WE DO NOT HANDLE TOP/LEFT OFFSETS OR WIDTH/HEIGHT DIFFERENT FROM CANVAS
                     for (int px = 0; px<outSize; px++) {
-                        uint16_t row = pixel_index / img_width;
                         uint32_t pixeloff = pixel_index;
+                        uint16_t inner_row = pixel_index / img_width;
+                        uint16_t inner_col = pixel_index % img_width;
+                        uint16_t outer_row = img_top + inner_row;
+                        uint16_t outer_col = img_left + inner_col;
+
                         if (interlace_flag) {
-                            row = calc_row_interlaced(row, img_height);
-                            pixeloff = row * img_width + (pixel_index % img_width);
+                            outer_row = img_top + calc_row_interlaced(inner_row, img_height);
                         }
+
+                        pixeloff = outer_row * width + outer_col;
 
                         int transp_idx = current_gce.transparent_color_flag ? current_gce.transparent_index : -1;
 
@@ -227,18 +234,19 @@ struct image32* parse(const char *filename)
                     bytesRead = read(fd, &gce_block, 5+1);
 
                     uint8_t block_size = gce_block[0];
-                    if (block_size != 4) RFAILED
+                    if (block_size != 4) RFAILEDP
                     uint8_t packed = gce_block[1];
                     uint16_t delay_time = gce_block[2] | (gce_block[3] << 8);
                     uint8_t transp_index = gce_block[4];
                     uint8_t terminator = gce_block[5];
-                    if (terminator != 0) RFAILED
+                    if (terminator != 0) RFAILEDP
+                    if (delay_time < 1) delay_time = 10;
                     
                     current_gce.delay_time = delay_time;
                     current_gce.transparent_index = transp_index;
                     current_gce.disposal_method = (packed >> 2) & 0b111;
                     current_gce.transparent_color_flag = packed & 0x1;
-                    printf("Frame %u: delay %d, transp idx %d, disposal %d, transp flag %d\n", crt_frame, delay_time, transp_index, current_gce.disposal_method, current_gce.transparent_color_flag);
+                    printf("Frame %u: delay %dms, transp idx %d, disposal %d, transp flag %d\n", crt_frame, delay_time*10, transp_index, current_gce.disposal_method, current_gce.transparent_color_flag);
                     break;
                 case COMMENT_EXTENSION:
                     seek_through_blocks(fd);
@@ -263,11 +271,7 @@ struct image32* parse(const char *filename)
                     }
                     continue;
             }
-
-            
-            
         } 
-            
     }
 
     close(fd);
