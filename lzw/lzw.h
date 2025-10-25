@@ -1,30 +1,36 @@
-#ifndef LZWSTREAM_H
-#define LZWSTREAM_H
-
 #include <stdint.h>
+#include <stddef.h>
 
-#define MAX_CODE_LEN 12
-#define FIRST_CODE 256
-#define MAX_CODES (1 << MAX_CODE_LEN)
-
-typedef struct {
-    unsigned char suffixChar;
-    unsigned int prefixCode;
-} decode_dictionary_t;
+#define LZW_MAX_CODE 4096
+#define LZW_MAX_STACK 4096
+#define LZW_OUTPUT_BUFFER_SIZE 65536
 
 typedef struct {
-    unsigned int nextCode;
-    unsigned char currentCodeLen;
-    unsigned int lastCode;
-    unsigned char c;
-    decode_dictionary_t dictionary[MAX_CODES - FIRST_CODE];
-    unsigned char stack[MAX_CODES];
-    int stackSize;
-    int ready;
-} lzw_decoder_t;
+    uint8_t suffix[LZW_MAX_CODE];
+    uint16_t prefix[LZW_MAX_CODE];
+    
+    uint8_t min_code_size;
+    uint16_t clear_code;
+    uint16_t eoi_code;
+    uint16_t next_code;
+    uint16_t max_code;
+    uint8_t code_size;
 
+    uint32_t bit_buffer;
+    uint8_t bits_in_buffer;
 
-void LZWInit(lzw_decoder_t *dec, int minCodeLen);
-const unsigned char* LZWFeedCode(lzw_decoder_t *dec, unsigned int code, int *outSize);
+    int prev_code;
 
-#endif
+    uint8_t stack[LZW_MAX_STACK];
+
+    uint8_t output_buffer[LZW_OUTPUT_BUFFER_SIZE];
+    size_t output_pos;
+
+    int initialized;
+    int finished;
+} lzw_state_t;
+
+void lzw_init(lzw_state_t *state, uint8_t min_code_size);
+
+uint8_t* lzw_feed(lzw_state_t *state, const uint8_t *chunk, size_t chunk_size, 
+                  size_t *decoded_size);

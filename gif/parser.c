@@ -132,8 +132,8 @@ struct image32* parse(const char *filename)
             if (bytesRead < 9) RFAILEDP
             uint16_t img_left   = img_desc[0] | (img_desc[1] << 8);
             uint16_t img_top    = img_desc[2] | (img_desc[3] << 8);
-            uint16_t img_width  = img_desc[4] | (img_desc[5] << 8);
-            uint16_t img_height = img_desc[6] | (img_desc[7] << 8);
+            uint16_t local_width  = img_desc[4] | (img_desc[5] << 8);
+            uint16_t local_height = img_desc[6] | (img_desc[7] << 8);
             uint8_t img_packed = img_desc[8];
             uint8_t lct_flag = img_packed >> 7;
             uint8_t interlace_flag = (img_packed >> 6) &  1;
@@ -147,7 +147,8 @@ struct image32* parse(const char *filename)
 
             // is rendering time!!
             struct frame32 *current_frame = malloc(sizeof(struct frame32));
-            uint32_t* frame = malloc(img_width * img_height * sizeof(uint32_t));
+            uint32_t* frame = malloc(width * height * sizeof(uint32_t));
+            memset(frame, 0, width * height * sizeof(uint32_t));
             current_frame->pixels = frame;
             current_frame->delay = crt_delay;
             crt_delay += current_gce.delay_time * 10;
@@ -157,8 +158,8 @@ struct image32* parse(const char *filename)
 
             if (!frame) RFAILEDP
 
-            lzw_decoder_t decoder;
-            LZWInit(&decoder, lzw_min_code_size);
+            lzw_state_t decoder;
+            lzw_init(&decoder, lzw_min_code_size);
             uint32_t pixel_index = 0;
             
 
@@ -175,51 +176,53 @@ struct image32* parse(const char *filename)
                 bytesRead = read(fd, sub_block_data, sub_block_size);
                 if (bytesRead < sub_block_size) { free(sub_block_data); free(frame); free(img); RFAILEDP }
 
-                for (int i = 0; i < sub_block_size; i++) {
-                    int outSize;
-                    const unsigned char* chunk = LZWFeedCode(&decoder, sub_block_data[i], &outSize);
+                //for (int i = 0; i < sub_block_size; i++) {
+                size_t outSize;
+                const unsigned char* chunk = lzw_feed(&decoder, sub_block_data, sub_block_size, &outSize);
 
-                    // iterate through decoded bytes and write them into canvas or something
-                    // BIG NOTE: CURRENTLY WE DO NOT HANDLE TOP/LEFT OFFSETS OR WIDTH/HEIGHT DIFFERENT FROM CANVAS
-                    for (int px = 0; px<outSize; px++) {
-                        uint32_t pixeloff = pixel_index;
-                        uint16_t inner_row = pixel_index / img_width;
-                        uint16_t inner_col = pixel_index % img_width;
-                        uint16_t outer_row = img_top + inner_row;
-                        uint16_t outer_col = img_left + inner_col;
+                // iterate through decoded bytes and write them into canvas or something
+                for (int px = 0; px<outSize; px++) {
+                    uint32_t pixeloff = pixel_index;
+                    uint16_t inner_row = pixel_index / local_width;
+                    uint16_t inner_col = pixel_index % local_width;
+                    uint16_t outer_row = img_top + inner_row;
+                    uint16_t outer_col = img_left + inner_col;
 
-                        if (interlace_flag) {
-                            outer_row = img_top + calc_row_interlaced(inner_row, img_height);
-                        }
-
-                        pixeloff = outer_row * width + outer_col;
-
-                        int transp_idx = current_gce.transparent_color_flag ? current_gce.transparent_index : -1;
-
-                        // here we write into the canvas based on the mode given
-                        switch (current_disposal) {
-                            case DISPOSE_NONE:
-                            case DISPOSE_UNSPECIFIED:
-                                if (chunk[px] != transp_idx) frame[pixeloff] =  local_palette[chunk[px]];
-                                break;
-                            case DISPOSE_BACKGROUND:
-                                // only fill the transparent pixels with bg color i think
-                                if (chunk[px] != transp_idx) frame[pixeloff] =  local_palette[chunk[px]];
-                                else frame[pixeloff] = local_palette[bg_index];
-                                break;
-                            case DISPOSE_PREVIOUS:
-                                if (crt_frame == 0) { free(frame); free(img); RFAILEDP }
-                                uint32_t* prev_frame = img->frames[crt_frame - 1]->pixels;
-                                if (chunk[px] != transp_idx) frame[pixeloff] =  local_palette[chunk[px]];
-                                else frame[pixeloff] = prev_frame[pixeloff];
-                                break;
-                        }
-
-                        pixel_index++;
+                    if (interlace_flag) {
+                        outer_row = img_top + calc_row_interlaced(inner_row, local_height);
                     }
+
+                    pixeloff = outer_row * width + outer_col;
+
+                    int transp_idx = current_gce.transparent_color_flag ? current_gce.transparent_index : -1;
+
+                    // here we write into the canvas based on the mode given
+                    uint32_t color = local_palette[chunk[px]];
+                    if (chunk[px] == bg_index) color = 0;
+                    switch (current_disposal) {
+                        case DISPOSE_NONE:
+                        case DISPOSE_UNSPECIFIED:
+                            if (chunk[px] != transp_idx) frame[pixeloff] =  color;
+                            break;
+                        case DISPOSE_BACKGROUND:
+                            // only fill the transparent pixels with bg color i think
+                            if (chunk[px] != transp_idx) frame[pixeloff] =  color;
+                            else frame[pixeloff] = 0; //local_palette[bg_index];
+                            break;
+                        case DISPOSE_PREVIOUS:
+                            if (crt_frame == 0) { free(frame); free(img); RFAILEDP }
+                            uint32_t* prev_frame = img->frames[crt_frame - 1]->pixels;
+                            if (chunk[px] != transp_idx) frame[pixeloff] =  color;
+                            else frame[pixeloff] = prev_frame[pixeloff];
+                            break;
+                    }
+
+                    pixel_index++;
                 }
+                //}
                 free(sub_block_data);
             }
+            printf("%u: written %u pixels\n", crt_frame, pixel_index);
             current_disposal = current_gce.disposal_method;
             append_frame(img, current_frame);
             crt_frame++;
@@ -240,7 +243,7 @@ struct image32* parse(const char *filename)
                     uint8_t transp_index = gce_block[4];
                     uint8_t terminator = gce_block[5];
                     if (terminator != 0) RFAILEDP
-                    if (delay_time < 1) delay_time = 10;
+                    if (delay_time < 1) delay_time = 1;
                     
                     current_gce.delay_time = delay_time;
                     current_gce.transparent_index = transp_index;
