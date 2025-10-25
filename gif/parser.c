@@ -243,7 +243,7 @@ struct image32* parse(const char *filename)
                     uint8_t transp_index = gce_block[4];
                     uint8_t terminator = gce_block[5];
                     if (terminator != 0) RFAILEDP
-                    if (delay_time < 1) delay_time = 1;
+                    if (delay_time < 1) delay_time = 10;
                     
                     current_gce.delay_time = delay_time;
                     current_gce.transparent_index = transp_index;

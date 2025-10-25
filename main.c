@@ -2,6 +2,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include "gif/gif.h"
+#include "modules.h"
+#include "text.h"
 
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
@@ -14,26 +16,37 @@ static uint64_t last_tick_banana = 0;
 struct image32* img_wolf = NULL;
 struct image32* img_banana = NULL;
 
-#define WINDOW_WIDTH 640
-#define WINDOW_HEIGHT 480
+extern struct ModuleWindow windows[3];
+
+void shrink_rect(SDL_FRect* rect, int pixels) {
+    rect->x += pixels;
+    rect->y += pixels;
+    rect->w -= pixels * 2;
+    rect->h -= pixels * 2;
+}
 
 // Placeholder: Two simple animated GIFs to test rendering
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
     SDL_SetAppMetadata("GrrGif", "1.0", "com.byteywolf.grrgif");
+    init_text_system(renderer);
     
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
     
-    if (!SDL_CreateWindowAndRenderer("renderbase", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE, &window, &renderer)) {
+    if (!SDL_CreateWindowAndRenderer("GrrGif", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE, &window, &renderer)) {
         SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
+
     
-    SDL_SetRenderLogicalPresentation(renderer, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_LOGICAL_PRESENTATION_LETTERBOX);
+    // unnecessary because our ui adapts
+    // SDL_SetRenderLogicalPresentation(renderer, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_LOGICAL_PRESENTATION_LETTERBOX);
+
+    // loading things but probs unnecessary for now
     
     img_wolf = parse("./tests/wolf.gif");
     if (!img_wolf) {
@@ -70,48 +83,40 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
-    uint64_t now = SDL_GetTicks();
-    
-    struct frame32* f_wolf = img_wolf->frames[crt_frame_wolf];
-    if (last_tick_wolf == 0) {
-        last_tick_wolf = now;
+    for (int winID = 0; winID < 3; winID++) {
+        struct ModuleWindow current_window = windows[winID];
+        SDL_FRect window_rect = {0, 0, current_window.width, current_window.height};
+        switch (current_window.position) {
+            case POSITION_TOPLEFT:
+                window_rect.x = 0;
+                window_rect.y = 0;
+                break;
+            case POSITION_TOPRIGHT:
+                window_rect.x = WINDOW_WIDTH - current_window.width;
+                window_rect.y = 0;
+                break;
+            case POSITION_BOTTOM:
+                window_rect.x = 0;
+                window_rect.y = WINDOW_HEIGHT - current_window.height;
+                break;
+        }
+        SDL_SetRenderDrawColor(renderer, 10, 10, 10, 255);
+        SDL_RenderFillRect(renderer, &window_rect);
+        shrink_rect(&window_rect, 2);
+        SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
+        SDL_RenderFillRect(renderer, &window_rect);
+        shrink_rect(&window_rect, 2);
+        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+        SDL_RenderFillRect(renderer, &window_rect);
+        shrink_rect(&window_rect, 2);
+        SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
+        SDL_RenderFillRect(renderer, &window_rect);
+
+        SDL_Color bg_color = {30, 30, 30, 200};
+        draw_text_bg(current_window.title, window_rect.x + 10, window_rect.y + 10, bg_color);
+        
+
     }
-    if (now - last_tick_wolf >= f_wolf->delay) {
-        crt_frame_wolf = (crt_frame_wolf + 1) % img_wolf->frame_count;
-        last_tick_wolf = now;
-        f_wolf = img_wolf->frames[crt_frame_wolf];
-    }
-    
-    struct frame32* f_banana = img_banana->frames[crt_frame_banana];
-    if (last_tick_banana == 0) {
-        last_tick_banana = now;
-    }
-    if (now - last_tick_banana >= f_banana->delay) {
-        crt_frame_banana = (crt_frame_banana + 1) % img_banana->frame_count;
-        last_tick_banana = now;
-        f_banana = img_banana->frames[crt_frame_banana];
-    }
-    
-    SDL_RenderClear(renderer);
-    
-    SDL_UpdateTexture(tex_wolf, NULL, f_wolf->pixels, img_wolf->width * sizeof(uint32_t));
-    SDL_FRect wolf_rect = {
-        (WINDOW_WIDTH - img_wolf->width) / 2.0f,
-        50,
-        (float)img_wolf->width,
-        (float)img_wolf->height
-    };
-    SDL_RenderTexture(renderer, tex_wolf, NULL, &wolf_rect);
-    
-    SDL_UpdateTexture(tex_banana, NULL, f_banana->pixels, img_banana->width * sizeof(uint32_t));
-    SDL_FRect banana_rect = {
-        (WINDOW_WIDTH - img_banana->width) / 2.0f,
-        wolf_rect.y + wolf_rect.h + 20,
-        (float)img_banana->width,
-        (float)img_banana->height
-    };
-    SDL_RenderTexture(renderer, tex_banana, NULL, &banana_rect);
-    
     SDL_RenderPresent(renderer);
     
     return SDL_APP_CONTINUE;
