@@ -1,3 +1,5 @@
+#pragma once
+
 #define POSITION_TOPLEFT 0
 #define POSITION_TOPRIGHT 1 // main
 #define POSITION_BOTTOM 2

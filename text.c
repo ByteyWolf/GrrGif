@@ -1,8 +1,8 @@
-#include <SDL2/SDL.h>
 #include "text.h"
+#include "graphics/graphics.h"
+#include "fonts/monogram.h"
 
-SDL_Texture *font = NULL;
-SDL_Renderer *useRenderer = NULL;
+#include <stdint.h>
 
 #define FIRST_CHAR 32
 #define LAST_CHAR 127
@@ -13,31 +13,7 @@ SDL_Renderer *useRenderer = NULL;
 #define CHARS_PER_ROW 16
 
 static int current_font_size = FONT_NORMAL;
-static SDL_Color current_text_color = {255, 255, 255, 255};
-
-void init_text_system(SDL_Renderer *renderer) {
-    useRenderer = renderer;
-    SDL_Surface *surf = SDL_LoadBMP("fonts/monogram-bitmap.bmp");
-    if (!surf) {
-        SDL_Log("Failed to load font BMP: %s", SDL_GetError());
-        return;
-    }
-    
-    SDL_SetColorKey(surf, SDL_TRUE, SDL_MapRGB(surf->format, 0, 0, 0));
-    font = SDL_CreateTextureFromSurface(renderer, surf);
-    SDL_FreeSurface(surf);
-    
-    if (font) {
-        SDL_SetTextureBlendMode(font, SDL_BLENDMODE_BLEND);
-    }
-}
-
-void cleanup_text_system(void) {
-    if (font) {
-        SDL_DestroyTexture(font);
-        font = NULL;
-    }
-}
+static current_text_color = 0xFFFFFF;
 
 void set_font_size(int size) {
     if (size == FONT_NORMAL || size == FONT_LARGE) {
@@ -45,7 +21,7 @@ void set_font_size(int size) {
     }
 }
 
-void set_text_color(SDL_Color color) {
+void set_text_color(uint32_t color) {
     current_text_color = color;
 }
 
@@ -57,26 +33,29 @@ void set_text_color_rgb(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 }
 
 void draw_char(char c, int x, int y) {
-    if (!font || c < FIRST_CHAR || c > LAST_CHAR) return;
-    
-    int char_index = c - FIRST_CHAR;
-    SDL_Rect src_rect = {
-        .x = (char_index % CHARS_PER_ROW) * BCHAR_WIDTH,
-        .y = (char_index / CHARS_PER_ROW) * BCHAR_HEIGHT + Y_OFFSET,
-        .w = BCHAR_WIDTH,
-        .h = BCHAR_HEIGHT
+    int char_index;
+    Rect src_rect = {
+        (char_index % CHARS_PER_ROW) * BCHAR_WIDTH,
+        (char_index / CHARS_PER_ROW) * BCHAR_HEIGHT + Y_OFFSET,
+        BCHAR_WIDTH,
+        BCHAR_HEIGHT
     };
-    SDL_Rect dst_rect = { 
+    Rect dst_rect = { 
         x, 
         y, 
         BCHAR_WIDTH * current_font_size, 
         BCHAR_HEIGHT * current_font_size
     };
+    uint32_t* pixels = malloc(dst_rect.width * dst_rect.height);
+
+
+    if (!get_rgb8888(pixels, dst_rect.width, dst_rect.height)) { fprintf(stderr, "Failed to get data from screen"); return;
+    if (c < FIRST_CHAR || c > LAST_CHAR) return;
     
-    SDL_SetTextureColorMod(font, current_text_color.r, current_text_color.g, current_text_color.b);
-    SDL_SetTextureAlphaMod(font, current_text_color.a);
+    for (uint32_t glyph_y = 0; glyph_y < BCHAR_HEIGHT; glyph_y++) {
+        
+    }
     
-    SDL_RenderCopy(useRenderer, font, &src_rect, &dst_rect);
 }
 
 void draw_char_colored(char c, int x, int y, SDL_Color color) {

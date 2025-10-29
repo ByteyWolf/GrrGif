@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../image32.h"
 
 #define RFAILED { perror("Failed to read file"); close(fd); return; }
