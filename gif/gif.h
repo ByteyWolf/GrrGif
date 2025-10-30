@@ -2,8 +2,8 @@
 
 #include "../image32.h"
 
-#define RFAILED { perror("Failed to read file"); close(fd); return; }
-#define RFAILEDP { perror("Failed to read file (2)"); close(fd); return 0; }
+#define RFAILED { perror("Failed to read file"); fclose(fd); return; }
+#define RFAILEDP { perror("Failed to read file (2)"); fclose(fd); return 0; }
 
 #define IMAGE_DESCRIPTOR 0x2C
 #define EXTENSION_DESCRIPTOR 0x21

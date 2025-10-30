@@ -7,8 +7,7 @@
 #include "../lzw/lzw.h"
 #include "../image32.h"
 
-
-size_t read(FILE* fd, void *buf, size_t count) {
+size_t compat_read(FILE* fd, void *buf, size_t count) {
     return fread(buf, 1, count, (FILE *)fd);
 }
 
@@ -23,7 +22,7 @@ uint32_t* process_palette(FILE* fd, int num_entries, uint32_t* palette)
     gct = (uint8_t *)malloc(gct_size);
     if (!gct) RFAILEDP
 
-    bytesRead = read(fd, gct, gct_size);
+    bytesRead = compat_read(fd, gct, gct_size);
     if (bytesRead < gct_size) {
         free(gct);
         RFAILEDP
@@ -74,12 +73,12 @@ int append_frame(struct image32* img, struct frame32* new_frame) {
     return 0;
 }
 
-void seek_through_blocks(int fd) {
+void seek_through_blocks(FILE* fd) {
     uint8_t block_size;
     long bytesRead;
     
     while (1) {
-        bytesRead = read(fd, &block_size, 1);
+        bytesRead = compat_read(fd, &block_size, 1);
         if (bytesRead < 1) RFAILED
         if (block_size == 0) break;
         fseek(fd, block_size, SEEK_CUR);
@@ -130,11 +129,11 @@ struct image32* parse(const char *filename)
     }
 
     /* header */
-    bytesRead = read(fd, ver, sizeof(ver));
+    bytesRead = compat_read(fd, ver, sizeof(ver));
     if (bytesRead < 6 || (memcmp(ver, "GIF89a", 6) != 0 && memcmp(ver, "GIF87a", 6) != 0)) RFAILEDP
 
     /* logical screen descriptor or otherwise lsd (not the other lsd) */
-    bytesRead = read(fd, lsd, sizeof(lsd));
+    bytesRead = compat_read(fd, lsd, sizeof(lsd));
     if (bytesRead < 7) RFAILEDP
 
     width  = lsd[0] | (lsd[1] << 8);
@@ -152,9 +151,9 @@ struct image32* parse(const char *filename)
     /*uint32_t* canvas = malloc(width * height * sizeof(uint32_t));*/
     if (gct_flag) process_palette(fd, gct_entries, global_palette);
 
-    /* now read until we find the trailer */
+    /* now compat_read until we find the trailer */
     while (1) {
-        bytesRead = read(fd, &byte, 1);
+        bytesRead = compat_read(fd, &byte, 1);
         if (bytesRead < 1) RFAILEDP
         if (byte == 0x3B) {
             printf("Reached trailer normally.\n");
@@ -176,7 +175,7 @@ struct image32* parse(const char *filename)
             lzw_state_t decoder;
             uint32_t pixel_index;
             
-            bytesRead = read(fd, img_desc, sizeof(img_desc));
+            bytesRead = compat_read(fd, img_desc, sizeof(img_desc));
             if (bytesRead < 9) RFAILEDP
             img_left   = img_desc[0] | (img_desc[1] << 8);
             img_top    = img_desc[2] | (img_desc[3] << 8);
@@ -200,7 +199,7 @@ struct image32* parse(const char *filename)
             current_frame->pixels = frame;
             current_frame->delay = crt_delay;
             crt_delay += current_gce.delay_time * 10;
-            bytesRead = read(fd, &lzw_min_code_size, 1);
+            bytesRead = compat_read(fd, &lzw_min_code_size, 1);
             if (bytesRead < 1) RFAILEDP
 
             if (!frame) RFAILEDP
@@ -216,7 +215,7 @@ struct image32* parse(const char *filename)
                 const unsigned char* chunk;
                 int px;
                 
-                bytesRead = read(fd, &sub_block_size, 1);
+                bytesRead = compat_read(fd, &sub_block_size, 1);
                 if (bytesRead < 1) {
                     free(frame); free(img);
                     RFAILEDP
@@ -224,7 +223,7 @@ struct image32* parse(const char *filename)
                 if (sub_block_size == 0) break;
                 sub_block_data = malloc(sub_block_size);
                 if (!sub_block_data) { free(frame); free(img); RFAILEDP }
-                bytesRead = read(fd, sub_block_data, sub_block_size);
+                bytesRead = compat_read(fd, sub_block_data, sub_block_size);
                 if (bytesRead < sub_block_size) { free(sub_block_data); free(frame); free(img); RFAILEDP }
 
                 /*for (int i = 0; i < sub_block_size; i++) {*/
@@ -294,7 +293,7 @@ struct image32* parse(const char *filename)
         } else if (byte == EXTENSION_DESCRIPTOR) {
             uint8_t extension_identifier;
             
-            bytesRead = read(fd, &extension_identifier, 1);
+            bytesRead = compat_read(fd, &extension_identifier, 1);
             if (bytesRead < 1) { free(img); RFAILEDP }
             switch (extension_identifier) {
                 case GRAPHIC_CONTROL_EXTENSION:
@@ -306,7 +305,7 @@ struct image32* parse(const char *filename)
                     uint8_t transp_index;
                     uint8_t terminator;
                     
-                    bytesRead = read(fd, &gce_block, 5+1);
+                    bytesRead = compat_read(fd, &gce_block, 5+1);
 
                     block_size = gce_block[0];
                     if (block_size != 4) RFAILEDP
@@ -339,7 +338,7 @@ struct image32* parse(const char *filename)
                     /* skip other extensions for now */
                     while (1) {
                         uint8_t sub_block_size;
-                        bytesRead = read(fd, &sub_block_size, 1);
+                        bytesRead = compat_read(fd, &sub_block_size, 1);
                         if (bytesRead < 1) { free(img); RFAILEDP }
                         if (sub_block_size == 0) break;
                         /* skip the data */

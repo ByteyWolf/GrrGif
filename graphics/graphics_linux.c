@@ -1,6 +1,8 @@
 #include <X11/Xlib.h>
+#include <X11/Xft/Xft.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include "graphics.h"
 
 GC gc;
@@ -9,28 +11,83 @@ Display *dpy;
 uint32_t wwidth;
 uint32_t wheight;
 
+XftDraw *xft_draw = NULL;
+XftFont *xft_font = NULL;
 
 int init_graphics(uint32_t width, uint32_t height) {
     dpy = XOpenDisplay(NULL);
-    if (!dpy) {
-        perror("Failed to open display\n");
-        return 0;
-    }
+    if (!dpy) return 0;
 
     int screen = DefaultScreen(dpy);
     Window root = RootWindow(dpy, screen);
+    win = XCreateSimpleWindow(dpy, root, 100, 100, width, height, 1, BlackPixel(dpy, screen), WhitePixel(dpy, screen));
 
-    win = XCreateSimpleWindow(dpy, root,
-                                     100, 100, width, height, 1,
-                                     BlackPixel(dpy, screen),
-                                     WhitePixel(dpy, screen));
     wwidth = width;
     wheight = height;
-
     XMapWindow(dpy, win);
     XFlush(dpy);
-
+    
     gc = XCreateGC(dpy, win, 0, NULL);
+    xft_draw = XftDrawCreate(dpy, win, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
+    if (!xft_draw) return 0;
+
+    char font_str[128];
+    snprintf(font_str, sizeof(font_str), "monospace-%d", FONT_SIZE_NORMAL > 0 ? FONT_SIZE_NORMAL : 12);
+
+    xft_font = XftFontOpenName(dpy, screen, font_str);
+    if (!xft_font) xft_font = XftFontOpenName(dpy, screen, "monospace-12");
+    
+    return 1;
+}
+
+int poll_event(Event *event) {
+    XEvent xevent;
+
+    if (XPending(dpy) > 0) {
+        XNextEvent(dpy, &xevent);
+        switch (xevent.type) {
+            case KeyPress:
+                event->type = EVENT_KEYDOWN;
+                event->key = XLookupKeysym(&xevent.xkey, 0);
+                break;
+            case KeyRelease:
+                event->type = EVENT_KEYUP;
+                event->key = XLookupKeysym(&xevent.xkey, 0);
+                break;
+            case MotionNotify:
+                event->type = EVENT_MOUSEMOVE;
+                event->x = xevent.xmotion.x;
+                event->y = xevent.xmotion.y;
+                break;
+            case ButtonPress:
+                event->type = EVENT_MOUSEBUTTONDOWN;
+                event->x = xevent.xbutton.x;
+                event->y = xevent.xbutton.y;
+                break;
+            case ButtonRelease:
+                event->type = EVENT_MOUSEBUTTONUP;
+                event->x = xevent.xbutton.x;
+                event->y = xevent.xbutton.y;
+                break;
+            case ClientMessage:
+                event->type = EVENT_QUIT;
+                break;
+        }
+    } else {
+        return 0;
+    }
+
+    return 1;
+}
+
+int set_font_size(int font_size) {
+    if (!dpy || !xft_draw) return 0;
+    if (xft_font) XftFontClose(dpy, xft_font);
+    int screen = DefaultScreen(dpy);
+    char font_str[128];
+    snprintf(font_str, sizeof(font_str), "monospace-%d", font_size);
+    xft_font = XftFontOpenName(dpy, screen, font_str);
+    if (!xft_font) xft_font = XftFontOpenName(dpy, screen, "monospace-12");
     return 1;
 }
 
@@ -40,41 +97,32 @@ int draw_rect(Rect *rect, uint32_t color) {
     return 1;
 }
 
-int blit_rgb8888(uint32_t *pixels, uint32_t width, uint32_t height) {
-    XImage *img = XCreateImage(dpy, DefaultVisual(dpy, DefaultScreen(dpy)),
-                               DefaultDepth(dpy, DefaultScreen(dpy)),
-                               ZPixmap, 0, (char *)pixels,
-                               width, height, 32, 0);
-    if (!img) {
-        perror("Failed to create XImage\n");
-        return 0;
-    }
+int clear_graphics(uint32_t color) {
+    XSetForeground(dpy, gc, color);
+    XFillRectangle(dpy, win, gc, 0, 0, wwidth, wheight);
+    return 1;
+}
 
+int blit_rgb8888(uint32_t *pixels, uint32_t width, uint32_t height) {
+    XImage *img = XCreateImage(dpy, DefaultVisual(dpy, DefaultScreen(dpy)), DefaultDepth(dpy, DefaultScreen(dpy)), ZPixmap, 0, (char *)pixels, width, height, 32, 0);
+    if (!img) return 0;
     XPutImage(dpy, win, gc, img, 0, 0, 0, 0, width, height);
-    img->data = NULL; // Prevent XDestroyImage from freeing pixels
+    img->data = NULL;
     XDestroyImage(img);
     return 1;
 }
 
 int get_rgb8888(uint32_t *destbuf, uint32_t width, uint32_t height) {
     XImage *img = XGetImage(dpy, win, 0, 0, width, height, AllPlanes, ZPixmap);
-    if (!img) {
-        perror("Failed to get XImage\n");
-        return 0;
-    }
-
+    if (!img) return 0;
     if (img->bits_per_pixel != 32) {
-        fprintf(stderr, "Unexpected image depth: %d bpp\n", img->bits_per_pixel);
         XDestroyImage(img);
         return 0;
     }
-
     memcpy(destbuf, img->data, width * height * 4);
-
     XDestroyImage(img);
     return 1;
 }
-
 
 int flush_graphics() {
     XFlush(dpy);
@@ -82,53 +130,31 @@ int flush_graphics() {
 }
 
 int close_graphics() {
+    if (xft_draw) XftDrawDestroy(xft_draw);
+    if (xft_font) XftFontClose(dpy, xft_font);
     XFreeGC(dpy, gc);
     XDestroyWindow(dpy, win);
     XCloseDisplay(dpy);
     return 1;
 }
 
-Event poll_event() {
-    XEvent xevent;
-    Event event = {0, 0, 0, 0};
-
-    if (XPending(dpy) > 0) {
-        XNextEvent(dpy, &xevent);
-        switch (xevent.type) {
-            case KeyPress:
-                event.type = EVENT_KEYDOWN;
-                event.key = XLookupKeysym(&xevent.xkey, 0);
-                break;
-            case KeyRelease:
-                event.type = EVENT_KEYUP;
-                event.key = XLookupKeysym(&xevent.xkey, 0);
-                break;
-            case MotionNotify:
-                event.type = EVENT_MOUSEMOVE;
-                event.x = xevent.xmotion.x;
-                event.y = xevent.xmotion.y;
-                break;
-            case ButtonPress:
-                event.type = EVENT_MOUSEBUTTONDOWN;
-                event.x = xevent.xbutton.x;
-                event.y = xevent.xbutton.y;
-                break;
-            case ButtonRelease:
-                event.type = EVENT_MOUSEBUTTONUP;
-                event.x = xevent.xbutton.x;
-                event.y = xevent.xbutton.y;
-                break;
-            case ClientMessage:
-                event.type = EVENT_QUIT;
-                break;
-        }
-    }
-
-    return event;
+int draw_text(const char *text, int x, int y, uint32_t color) {
+    if (!xft_draw || !xft_font) return 0;
+    XRenderColor xrcolor = {(color >> 16 & 0xFF) * 257, (color >> 8 & 0xFF) * 257, (color & 0xFF) * 257, 0xFFFF};
+    XftColor xft_color;
+    XftColorAllocValue(dpy, DefaultVisual(dpy, DefaultScreen(dpy)), DefaultColormap(dpy, DefaultScreen(dpy)), &xrcolor, &xft_color);
+    XftDrawStringUtf8(xft_draw, &xft_color, xft_font, x, y, (const FcChar8 *)text, strlen(text));
+    XftColorFree(dpy, DefaultVisual(dpy, DefaultScreen(dpy)), DefaultColormap(dpy, DefaultScreen(dpy)), &xft_color);
+    return 1;
 }
 
-int clear_graphics(uint32_t color) {
-    XSetForeground(dpy, gc, color);
-    XFillRectangle(dpy, win, gc, 0, 0, wwidth, wheight);
+int draw_text_bg(const char *text, int x, int y, uint32_t fg_color, uint32_t bg_color) {
+    if (!xft_draw || !xft_font) return 0;
+    XGlyphInfo extents;
+    XftTextExtentsUtf8(dpy, xft_font, (const FcChar8 *)text, strlen(text), &extents);
+    int text_width = extents.width;
+    int text_height = xft_font->ascent + xft_font->descent;
+    draw_rect(&(Rect){x, y - xft_font->ascent, text_width, text_height}, bg_color);
+    draw_text(text, x, y, fg_color);
     return 1;
 }

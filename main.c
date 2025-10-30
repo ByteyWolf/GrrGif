@@ -1,16 +1,12 @@
 #include "graphics/graphics.h"
 #include "gif/gif.h"
 #include "modules.h"
-#include "text.h"
 #include <stdint.h>
+#include <stdio.h>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
-static uint32_t crt_frame_wolf = 0;
-static uint32_t crt_frame_banana = 0;
-static uint64_t last_tick_wolf = 0;
-static uint64_t last_tick_banana = 0;
 struct image32* img_wolf = NULL;
 struct image32* img_banana = NULL;
 
@@ -28,7 +24,7 @@ void shrink_rect(Rect* rect, int pixels) {
 
 int main(int argc, char *argv[]) {
     int running = 1;
-    SDL_Event event;
+    Event event;
 
     if (!init_graphics(WINDOW_WIDTH, WINDOW_HEIGHT)) {
         fprintf(stderr, "Failed to initialize graphics\n");
@@ -43,7 +39,7 @@ int main(int argc, char *argv[]) {
     // -------------------- Main loop --------------------
     
     while (running) {
-        while (poll_event(&event).type != EVENT_NONE) {
+        while (poll_event(&event)) {
             if (event.type == EVENT_QUIT) running = 0;
         }
 
@@ -75,15 +71,13 @@ int main(int argc, char *argv[]) {
             shrink_rect(&window_rect, 2);
             draw_rect(&window_rect, COLOR_GRAY);
 
-            set_text_color(COLOR_WHITE);
-            set_font_size(FONT_LARGE);
-            draw_text_bg(current_window.title, window_rect.x + 10, window_rect.y, COLOR_GRAY);
+            set_font_size(FONT_SIZE_LARGE);
+            draw_text_bg(current_window.title, window_rect.x + 10, window_rect.y + 11, COLOR_WHITE, COLOR_GRAY);
         }
 
         flush_graphics();
     }
 
     close_graphics();
-    cleanup_text_system();
     return 0;
 }
