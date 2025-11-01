@@ -72,6 +72,16 @@ int poll_event(Event *event) {
             case ClientMessage:
                 event->type = EVENT_QUIT;
                 break;
+            case ConfigureNotify:
+                if (xevent.xconfigure.width != wwidth ||
+                    xevent.xconfigure.height != wheight) {
+                    event->type = EVENT_RESIZE; // Add this to your Event enum
+                    event->width = xevent.xconfigure.width;
+                event->height = xevent.xconfigure.height;
+                wwidth = event->width;
+                wheight = event->height;
+                    }
+                    break;
         }
     } else {
         return 0;
@@ -103,16 +113,16 @@ int clear_graphics(uint32_t color) {
     return 1;
 }
 
-int blit_rgb8888(uint32_t *pixels, uint32_t width, uint32_t height) {
+int blit_rgb8888(uint32_t *pixels, uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
     XImage *img = XCreateImage(dpy, DefaultVisual(dpy, DefaultScreen(dpy)), DefaultDepth(dpy, DefaultScreen(dpy)), ZPixmap, 0, (char *)pixels, width, height, 32, 0);
     if (!img) return 0;
-    XPutImage(dpy, win, gc, img, 0, 0, 0, 0, width, height);
+    XPutImage(dpy, win, gc, img, 0, 0, x, y, width, height);
     img->data = NULL;
     XDestroyImage(img);
     return 1;
 }
 
-int get_rgb8888(uint32_t *destbuf, uint32_t width, uint32_t height) {
+/*int get_rgb8888(uint32_t *destbuf, uint32_t width, uint32_t height) {
     XImage *img = XGetImage(dpy, win, 0, 0, width, height, AllPlanes, ZPixmap);
     if (!img) return 0;
     if (img->bits_per_pixel != 32) {
@@ -122,7 +132,7 @@ int get_rgb8888(uint32_t *destbuf, uint32_t width, uint32_t height) {
     memcpy(destbuf, img->data, width * height * 4);
     XDestroyImage(img);
     return 1;
-}
+}*/
 
 int flush_graphics() {
     XFlush(dpy);

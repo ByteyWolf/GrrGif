@@ -1,8 +1,11 @@
 #include "graphics/graphics.h"
 #include "gif/gif.h"
 #include "modules.h"
+#include "modules/modfunc.h"
+#include "timeline/timeline.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
@@ -36,11 +39,31 @@ int main(int argc, char *argv[]) {
     img_banana = parse("./tests/dancing-banana-banana.gif");
     if (!img_banana) printf("Failed to parse banana.gif");
 
+    struct LoadedFile* test1f = malloc(sizeof(struct LoadedFile));
+    test1f->imagePtr = img_wolf;
+    test1f->type = FILE_ANIMATION;
+
+    struct TimelineObject* test1 = malloc(sizeof(struct TimelineObject));
+    test1->x = 30;
+    test1->y = 0;
+    test1->width = 200;
+    test1->height = 100;
+    test1->effectsList = 0;
+    test1->fileSource = 0;
+    test1->timePosMs = 0;
+    test1->length = 100;
+    test1->metadata = test1f;
+
+    insertTimelineObj(test1);
+
     // -------------------- Main loop --------------------
     
     while (running) {
         while (poll_event(&event)) {
-            if (event.type == EVENT_QUIT) running = 0;
+            if (event.type == EVENT_QUIT) {running = 0; break;}
+            if (event.type == EVENT_RESIZE) {
+
+            }
         }
 
         clear_graphics(0x000000);
@@ -74,6 +97,8 @@ int main(int argc, char *argv[]) {
             set_font_size(FONT_SIZE_LARGE);
             draw_text_bg(current_window.title, window_rect.x + 10, window_rect.y + 11, COLOR_WHITE, COLOR_GRAY);
         }
+
+        preview_draw(WINDOW_WIDTH - windows[1].width, 0, windows[1].width, windows[1].height);
 
         flush_graphics();
     }
