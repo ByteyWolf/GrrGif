@@ -21,6 +21,19 @@ int init_graphics(uint32_t width, uint32_t height) {
     int screen = DefaultScreen(dpy);
     Window root = RootWindow(dpy, screen);
     win = XCreateSimpleWindow(dpy, root, 100, 100, width, height, 1, BlackPixel(dpy, screen), WhitePixel(dpy, screen));
+    XSelectInput(dpy, win,
+    StructureNotifyMask | KeyPressMask | KeyReleaseMask |
+    ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
+    XSetWindowAttributes attrs;
+    attrs.background_pixmap = None;
+    XChangeWindowAttributes(dpy, win, CWBackPixmap, &attrs);
+    XSizeHints hints;
+    hints.flags = PMinSize;
+    hints.min_width = 400;
+    hints.min_height = 300;
+    XSetWMNormalHints(dpy, win, &hints);
+    XStoreName(dpy, win, "GrrGif - [no project]");
+
 
     wwidth = width;
     wheight = height;

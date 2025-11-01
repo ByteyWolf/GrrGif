@@ -22,6 +22,7 @@ uint32_t previewWidth;
 Mutex rendering;
 
 extern struct ModuleWindow windows[3];
+extern const uint32_t COLOR_GRAY;
 
 struct copydata {
     uint32_t* pixels;
@@ -39,7 +40,7 @@ int alloc_preview() {
     previewHeight = windows[1].height - 40;
     uint32_t* new = malloc(previewWidth * previewHeight * sizeof(uint32_t));
     if (!new) return 1;
-    memset(new, 0, previewWidth * previewHeight * sizeof(uint32_t));
+    memset(new, COLOR_GRAY, previewWidth * previewHeight * sizeof(uint32_t));
     pixelPreview = new;
     return 0;
 }
@@ -73,52 +74,100 @@ void nearest_neighbor(struct copydata* src, struct copydata* dst) {
     }
 }
 
+void fit_aspect_ratio(uint32_t src_width, uint32_t src_height,
+                      uint32_t *x, uint32_t *y, uint32_t *width, uint32_t *height) {
+    float src_aspect = (float)src_width / (float)src_height;
+    float dst_aspect = (float)(*width) / (float)(*height);
+    
+    if (dst_aspect > src_aspect) {
+        uint32_t new_width = (uint32_t)((*height) * src_aspect);
+        *x += (*width - new_width) / 2;
+        *width = new_width;
+    } else {
+        uint32_t new_height = (uint32_t)((*width) / src_aspect);
+        *y += (*height - new_height) / 2;
+        *height = new_height;
+    }
+}
+
 void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     mutex_lock(&rendering);
+    uint32_t canvas_width = width;
+    uint32_t canvas_height = height;
+    uint32_t offset_x = 0;
+    uint32_t offset_y = 0;
+    
+    fit_aspect_ratio(fileWidthPx, fileHeightPx, &offset_x, &offset_y, &width, &height);
+    
+    if (canvas_width != previewWidth || canvas_height != previewHeight) {
+        free(pixelPreview); 
+        pixelPreview = NULL; 
+        previewWidth = canvas_width; 
+        previewHeight = canvas_height;
+    }
+    
     if (!pixelPreview) alloc_preview();
+    for (uint32_t py = 0; py < height; py++) {
+        for (uint32_t px = 0; px < width; px++) {
+            uint32_t canvas_x = offset_x + px;
+            uint32_t canvas_y = offset_y + py;
+            if (canvas_x < previewWidth && canvas_y < previewHeight) {
+                pixelPreview[canvas_y * previewWidth + canvas_x] = 0xFFFFFFFF;
+            }
+        }
+    }
+
+    
     uint32_t* usePreview = pixelPreview;
     struct TimelineObject* crtObj = timeline;
+    
     while (crtObj) {
         uint32_t begin = crtObj->timePosMs;
         uint32_t len = crtObj->length;
-        printf("obj%p\n", crtObj);
         if (begin <= crtTimelineMs && begin + len >= crtTimelineMs) {
-            // eligible for rendering
-            // step 1: draw preview
-            // step 2: TODO: draw effects: to be added later
-            // note for self: we need to add padding to the preview field when i implement effects, for stuff like borders
             if (pixelPreview != usePreview) {
-                // preview area has changed, abort drawing
                 crtObj = NULL;
                 alloc_preview();
                 mutex_unlock(&rendering);
                 return;
             }
 
-            float scaleX = (float)previewWidth / fileWidthPx;
-            float scaleY = (float)previewHeight / fileHeightPx;
-
-            printf("scalings: %f %f\n", scaleX, scaleY);
-
-            // Transform the inner box
-            uint32_t scaled_x = (uint32_t)(crtObj->x * scaleX);
-            uint32_t scaled_y = (uint32_t)(crtObj->y * scaleY);
+            float scaleX = (float)width / fileWidthPx;
+            float scaleY = (float)height / fileHeightPx;
+            
+            uint32_t scaled_x = offset_x + (uint32_t)(crtObj->x * scaleX);
+            uint32_t scaled_y = offset_y + (uint32_t)(crtObj->y * scaleY);
             uint32_t scaled_width = (uint32_t)(crtObj->width * scaleX);
             uint32_t scaled_height = (uint32_t)(crtObj->height * scaleY);
-
-            // TODO: currently this only draws frame 0, implement for changing frames
+            
             switch (crtObj->metadata->type) {
                 case FILE_STILLFRAME:
                 case FILE_ANIMATION:
-                    struct copydata src = {crtObj->metadata->imagePtr->frames[0]->pixels, crtObj->metadata->imagePtr->width, crtObj->metadata->imagePtr->height, crtObj->metadata->imagePtr->width, crtObj->metadata->imagePtr->height, 0, 0};
-                    struct copydata dest = {usePreview, previewWidth, previewHeight, scaled_width, scaled_height, scaled_x, scaled_y};
-                    printf("Copy from %p %ux%u %u;%u to %p %ux%u %u;%u\n", src.pixels, src.width, src.height, src.x, src.y, dest.pixels, dest.width, dest.height, dest.x, dest.y);
+                    struct copydata src = {
+                        crtObj->metadata->imagePtr->frames[0]->pixels, 
+                        crtObj->metadata->imagePtr->width, 
+                        crtObj->metadata->imagePtr->height, 
+                        crtObj->metadata->imagePtr->width, 
+                        crtObj->metadata->imagePtr->height, 
+                        0, 0
+                    };
+                    struct copydata dest = {
+                        usePreview, 
+                        previewWidth,
+                        previewHeight,
+                        scaled_width, 
+                        scaled_height, 
+                        scaled_x, 
+                        scaled_y
+                    };
                     nearest_neighbor(&src, &dest);
                     break;
             }
         }
         crtObj = crtObj->nextObject;
     }
+    
+
     blit_rgb8888(usePreview, previewWidth, previewHeight, x + 20, y + 30);
     mutex_unlock(&rendering);
 }
