@@ -8,7 +8,8 @@ SRC = main.c \
       lzw/lzwdecode.c \
       modules.c \
       modules/preview.c \
-      timeline/timeline.c
+      timeline/timeline.c \
+      debug.c
 
 OBJ = $(SRC:.c=.o)
 EXEC = grrgif

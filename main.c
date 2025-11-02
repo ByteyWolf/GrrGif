@@ -3,6 +3,7 @@
 #include "modules.h"
 #include "modules/modfunc.h"
 #include "timeline/timeline.h"
+#include "debug.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,18 +32,26 @@ void shrink_rect(Rect* rect, int pixels) {
 }
 
 int main(int argc, char *argv[]) {
+    printf("GrrGif v0.0\n(c) Copyright 2025 Bytey Wolf. All rights reserved.\n\n");
+
     int running = 1;
     Event event;
+
+    debugf(DEBUG_INFO, "Initializing graphics system...");
 
     if (!init_graphics(WINDOW_WIDTH, WINDOW_HEIGHT)) {
         fprintf(stderr, "Failed to initialize graphics\n");
         return 1;
     }
 
+    debugf(DEBUG_INFO, "Loading sample GIFs...");
+
     img_wolf = parse("./tests/wolf.gif");
     if (!img_wolf) printf("Failed to parse wolf.gif");
     img_banana = parse("./tests/dancing-banana-banana.gif");
     if (!img_banana) printf("Failed to parse banana.gif");
+
+    debugf(DEBUG_VERBOSE, "Adding sample GIF to timeline.");
 
     struct LoadedFile* test1f = malloc(sizeof(struct LoadedFile));
     test1f->imagePtr = img_wolf;
@@ -79,10 +88,16 @@ int main(int argc, char *argv[]) {
         //clear_graphics(0x000000);
         if (!pendingRedraw) continue;
         pendingRedraw = 0;
+        debugf(DEBUG_VERBOSE, "A redraw is pending.");
         
         for (int winID = 0; winID < 3; winID++) {
+            debugf(DEBUG_VERBOSE, "Redrawing widget %u...", winID);
             struct ModuleWindow current_window = windows[winID];
-            Rect window_rect = {0, 0, current_window.width, current_window.height};
+            Rect window_rect;
+            window_rect.x = 0;
+            window_rect.y = 0;
+            window_rect.width = current_window.width;
+            window_rect.height = current_window.height;
 
             switch (current_window.position) {
                 case POSITION_TOPLEFT:
@@ -115,6 +130,7 @@ int main(int argc, char *argv[]) {
         flush_graphics();
     }
 
+    debugf(DEBUG_INFO, "Bye-bye...");
     close_graphics();
     return 0;
 }

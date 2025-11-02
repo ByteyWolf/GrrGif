@@ -1,11 +1,29 @@
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "gif.h"
 #include "../lzw/lzw.h"
 #include "../image32.h"
+#include "../debug.h"
+
+static uint32_t g_global_palette[256];
+static uint32_t g_local_palette[256];
+static uint16_t g_width;
+static uint16_t g_height;
+static uint16_t g_img_left;
+static uint16_t g_img_top;
+static uint16_t g_local_width;
+static uint16_t g_local_height;
+static uint8_t g_interlace_flag;
+static uint8_t g_bg_index;
+static uint8_t g_current_disposal;
+static int g_transp_idx;
+static struct gce_data g_current_gce;
+static uint32_t g_crt_delay;
+static uint32_t g_crt_frame;
+static struct image32* g_img;
+static FILE* g_fd;
 
 size_t compat_read(FILE* fd, void *buf, size_t count) {
     return fread(buf, 1, count, (FILE *)fd);
@@ -85,272 +103,316 @@ void seek_through_blocks(FILE* fd) {
     }
 }
 
+static int process_pixel(uint32_t* frame, uint32_t pixel_index, uint8_t color_index) {
+    uint32_t pixeloff;
+    uint16_t inner_row;
+    uint16_t inner_col;
+    uint16_t outer_row;
+    uint16_t outer_col;
+    uint32_t color;
+    uint32_t* prev_frame;
+
+    inner_row = pixel_index / g_local_width;
+    inner_col = pixel_index % g_local_width;
+    outer_row = g_img_top + inner_row;
+    outer_col = g_img_left + inner_col;
+
+    if (g_interlace_flag) {
+        outer_row = g_img_top + calc_row_interlaced(inner_row, g_local_height);
+    }
+
+    pixeloff = outer_row * g_width + outer_col;
+
+    /* here we write into the canvas based on the mode given */
+    color = g_local_palette[color_index];
+    if (color_index == g_bg_index) color = 0;
+    if (pixeloff >= g_width * g_height) return -1;
+    
+    switch (g_current_disposal) {
+        case DISPOSE_NONE:
+        case DISPOSE_UNSPECIFIED:
+            if (color_index != g_transp_idx) frame[pixeloff] = color;
+            break;
+        case DISPOSE_BACKGROUND:
+            /* only fill the transparent pixels with bg color i think */
+            if (color_index != g_transp_idx) frame[pixeloff] = color;
+            else frame[pixeloff] = 0; /*g_local_palette[g_bg_index];*/
+            break;
+        case DISPOSE_PREVIOUS:
+            if (g_crt_frame == 0) return -1;
+            prev_frame = g_img->frames[g_crt_frame - 1]->pixels;
+            if (color_index != g_transp_idx) frame[pixeloff] = color;
+            else frame[pixeloff] = prev_frame[pixeloff];
+            break;
+    }
+    
+    return 0;
+}
+
+static int process_lzw_block(lzw_state_t* decoder, uint32_t* frame, uint32_t* pixel_index) {
+    uint8_t sub_block_size;
+    uint8_t* sub_block_data;
+    size_t outSize;
+    const unsigned char* chunk;
+    int px;
+    size_t bytesRead;
+    
+    bytesRead = compat_read(g_fd, &sub_block_size, 1);
+    if (bytesRead < 1) return -1;
+    if (sub_block_size == 0) return 0;
+    
+    sub_block_data = malloc(sub_block_size);
+    if (!sub_block_data) return -1;
+    
+    bytesRead = compat_read(g_fd, sub_block_data, sub_block_size);
+    if (bytesRead < sub_block_size) {
+        free(sub_block_data);
+        return -1;
+    }
+
+    chunk = lzw_feed(decoder, sub_block_data, sub_block_size, &outSize);
+
+    /* iterate through decoded bytes and write them into canvas or something */
+    for (px = 0; px < outSize; px++) {
+        if (process_pixel(frame, *pixel_index, chunk[px]) != 0) {
+            free(sub_block_data);
+            return -1;
+        }
+        (*pixel_index)++;
+    }
+    
+    free(sub_block_data);
+    return 1;
+}
+
+static int decode_image_data(uint32_t* frame) {
+    lzw_state_t* decoder = malloc(sizeof(lzw_state_t));
+    uint8_t lzw_min_code_size;
+    uint32_t pixel_index = 0;
+    size_t bytesRead;
+    int result;
+    
+    bytesRead = compat_read(g_fd, &lzw_min_code_size, 1);
+    if (bytesRead < 1) RFAILEDP
+
+    lzw_init(decoder, lzw_min_code_size);
+
+    while (1) {
+        result = process_lzw_block(decoder, frame, &pixel_index);
+        if (result < 0) RFAILEDP
+        if (result == 0) break;
+    }
+    
+    return 0;
+}
+
+static int read_image_descriptor(void) {
+    uint8_t img_desc[9];
+    uint8_t img_packed;
+    uint8_t lct_flag;
+    int lct_entries;
+    size_t bytesRead;
+    
+    bytesRead = compat_read(g_fd, img_desc, sizeof(img_desc));
+    if (bytesRead < 9) RFAILEDP
+    
+    g_img_left = img_desc[0] | (img_desc[1] << 8);
+    g_img_top = img_desc[2] | (img_desc[3] << 8);
+    g_local_width = img_desc[4] | (img_desc[5] << 8);
+    g_local_height = img_desc[6] | (img_desc[7] << 8);
+    img_packed = img_desc[8];
+    lct_flag = img_packed >> 7;
+    g_interlace_flag = (img_packed >> 6) & 1;
+    lct_entries = 1 << ((img_packed & 0x7) + 1);
+    
+    if (lct_flag) {
+        process_palette(g_fd, lct_entries, g_local_palette);
+    } else {
+        memcpy(g_local_palette, g_global_palette, 256 * sizeof(uint32_t));
+    }
+    
+    return 0;
+}
+
+static int handle_image_descriptor(void) {
+    struct frame32 *current_frame;
+    uint32_t* frame;
+    
+    if (read_image_descriptor() != 0) RFAILEDP
+
+    /* is rendering time!! */
+    current_frame = malloc(sizeof(struct frame32));
+    frame = malloc(g_width * g_height * sizeof(uint32_t));
+    if (!frame || !current_frame) {
+        free(frame);
+        free(current_frame);
+        RFAILEDP
+    }
+    
+    memset(frame, 0, g_width * g_height * sizeof(uint32_t));
+    current_frame->pixels = frame;
+    current_frame->delay = g_crt_delay;
+    g_crt_delay += g_current_gce.delay_time * 10;
+    
+    g_transp_idx = g_current_gce.transparent_color_flag ? g_current_gce.transparent_index : -1;
+
+    if (decode_image_data(frame) != 0) {
+        free(frame);
+        free(current_frame);
+        RFAILEDP
+    }
+    
+    append_frame(g_img, current_frame);
+    g_crt_frame++;
+    return 0;
+}
+
+static int handle_gce(void) {
+    uint8_t gce_block[6];
+    uint8_t block_size;
+    uint8_t packed_gce;
+    uint16_t delay_time;
+    uint8_t transp_index;
+    uint8_t terminator;
+    size_t bytesRead;
+    
+    bytesRead = compat_read(g_fd, &gce_block, 6);
+    if (bytesRead < 6) RFAILEDP
+
+    block_size = gce_block[0];
+    if (block_size != 4) RFAILEDP
+    
+    packed_gce = gce_block[1];
+    delay_time = gce_block[2] | (gce_block[3] << 8);
+    transp_index = gce_block[4];
+    terminator = gce_block[5];
+    
+    if (terminator != 0) RFAILEDP
+    if (delay_time < 1) delay_time = 10;
+    
+    g_current_gce.delay_time = delay_time;
+    g_current_gce.transparent_index = transp_index;
+    g_current_gce.disposal_method = (packed_gce >> 2) & 7;
+    g_current_gce.transparent_color_flag = packed_gce & 0x1;
+    
+    return 0;
+}
+
+static int handle_extension(void) {
+    uint8_t extension_identifier;
+    size_t bytesRead;
+    
+    bytesRead = compat_read(g_fd, &extension_identifier, 1);
+    if (bytesRead < 1) RFAILEDP
+    
+    switch (extension_identifier) {
+        case GRAPHIC_CONTROL_EXTENSION:
+            return handle_gce();
+        case COMMENT_EXTENSION:
+            seek_through_blocks(g_fd);
+            break;
+        case PLAIN_TEXT_EXTENSION:
+            fseek(g_fd, 13, SEEK_CUR); /* block size + 12 bytes of data */
+            seek_through_blocks(g_fd);
+            break;
+        case APPLICATION_EXTENSION:
+            fseek(g_fd, 12, SEEK_CUR);
+            seek_through_blocks(g_fd);
+            break;
+        default:
+            /* skip other extensions for now */
+            seek_through_blocks(g_fd);
+            break;
+    }
+    return 0;
+}
 
 /* until we can come up with a proper structure */
 struct image32* parse(const char *filename)
 {
-    uint32_t global_palette[256];
-    uint32_t local_palette[256];
-    struct image32* img;
-    uint32_t crt_delay;
-    uint32_t crt_frame;
-    struct gce_data current_gce;
-    uint8_t current_disposal;
-    FILE *fd;
+    debugf(DEBUG_VERBOSE, "Trying to load GIF %s.", filename);
+    
     size_t bytesRead;
     uint8_t ver[6];
     uint8_t lsd[7];
-    uint16_t width, height;
     uint8_t packed;
     uint8_t gct_flag;
-    int color_res;
     int gct_entries;
-    uint8_t bg_index;
-    uint8_t pixel_aspect;
     uint8_t byte;
     
-    img = malloc(sizeof(struct image32));
-    crt_delay = 0;
-    crt_frame = 0;
-    current_gce.delay_time = 0;
-    current_gce.transparent_index = 0;
-    current_gce.disposal_method = 0;
-    current_gce.transparent_color_flag = 0;
-    current_disposal = DISPOSE_NONE;
+    g_img = malloc(sizeof(struct image32));
+    if (!g_img) return 0;
     
-    fd = fopen(filename, "rb");
-
-    img->frame_count = 0;
-    img->frames = NULL;
-
-    if (!fd) {
+    g_crt_delay = 0;
+    g_crt_frame = 0;
+    g_current_gce.delay_time = 0;
+    g_current_gce.transparent_index = 0;
+    g_current_gce.disposal_method = 0;
+    g_current_gce.transparent_color_flag = 0;
+    g_current_disposal = DISPOSE_NONE;
+    
+    g_fd = fopen(filename, "rb");
+    if (!g_fd) {
         perror("Failed to open file");
+        free(g_img);
         return 0;
     }
 
+    g_img->frame_count = 0;
+    g_img->frames = NULL;
+
     /* header */
-    bytesRead = compat_read(fd, ver, sizeof(ver));
-    if (bytesRead < 6 || (memcmp(ver, "GIF89a", 6) != 0 && memcmp(ver, "GIF87a", 6) != 0)) RFAILEDP
+    bytesRead = compat_read(g_fd, ver, sizeof(ver));
+    if (bytesRead < 6 || (memcmp(ver, "GIF89a", 6) != 0 && memcmp(ver, "GIF87a", 6) != 0)) {
+        free(g_img);
+        RFAILEDP
+    }
 
     /* logical screen descriptor or otherwise lsd (not the other lsd) */
-    bytesRead = compat_read(fd, lsd, sizeof(lsd));
-    if (bytesRead < 7) RFAILEDP
+    bytesRead = compat_read(g_fd, lsd, sizeof(lsd));
+    if (bytesRead < 7) {
+        free(g_img);
+        RFAILEDP
+    }
 
-    width  = lsd[0] | (lsd[1] << 8);
-    height = lsd[2] | (lsd[3] << 8);
+    g_width = lsd[0] | (lsd[1] << 8);
+    g_height = lsd[2] | (lsd[3] << 8);
 
     packed = lsd[4];
     gct_flag = packed >> 7;
-    color_res = ((packed >> 4) & 0x7) + 1;
-    /*uint8_t sort_flag = (packed >> 3) & 1;*/
     gct_entries = 1 << ((packed & 0x7) + 1);
 
-    bg_index = lsd[5];
-    pixel_aspect = lsd[6];
+    g_bg_index = lsd[5];
 
-    /*uint32_t* canvas = malloc(width * height * sizeof(uint32_t));*/
-    if (gct_flag) process_palette(fd, gct_entries, global_palette);
+    /*uint32_t* canvas = malloc(g_width * g_height * sizeof(uint32_t));*/
+    if (gct_flag) process_palette(g_fd, gct_entries, g_global_palette);
 
     /* now compat_read until we find the trailer */
     while (1) {
-        bytesRead = compat_read(fd, &byte, 1);
-        if (bytesRead < 1) RFAILEDP
+        bytesRead = compat_read(g_fd, &byte, 1);
+        if (bytesRead < 1) {
+            free(g_img);
+            RFAILEDP
+        }
         if (byte == 0x3B) {
-            printf("Reached trailer normally.\n");
             break;
         } else if (byte == IMAGE_DESCRIPTOR) {
-            uint8_t img_desc[9];
-            uint16_t img_left;
-            uint16_t img_top;
-            uint16_t local_width;
-            uint16_t local_height;
-            uint8_t img_packed;
-            uint8_t lct_flag;
-            uint8_t interlace_flag;
-            uint8_t sort_flag;
-            int lct_entries;
-            struct frame32 *current_frame;
-            uint32_t* frame;
-            uint8_t lzw_min_code_size;
-            lzw_state_t decoder;
-            uint32_t pixel_index;
-            
-            bytesRead = compat_read(fd, img_desc, sizeof(img_desc));
-            if (bytesRead < 9) RFAILEDP
-            img_left   = img_desc[0] | (img_desc[1] << 8);
-            img_top    = img_desc[2] | (img_desc[3] << 8);
-            local_width  = img_desc[4] | (img_desc[5] << 8);
-            local_height = img_desc[6] | (img_desc[7] << 8);
-            img_packed = img_desc[8];
-            lct_flag = img_packed >> 7;
-            interlace_flag = (img_packed >> 6) &  1;
-            sort_flag = (img_packed >> 5) & 1;
-            lct_entries = 1 << ((img_packed & 0x7) + 1);
-            if (lct_flag) {
-                process_palette(fd, lct_entries, local_palette);
-            } else {
-                memcpy(local_palette, global_palette, sizeof(global_palette));
+            if (handle_image_descriptor() != 0) {
+                free(g_img);
+                RFAILEDP
             }
-
-            /* is rendering time!! */
-            current_frame = malloc(sizeof(struct frame32));
-            frame = malloc(width * height * sizeof(uint32_t));
-            memset(frame, 0, width * height * sizeof(uint32_t));
-            current_frame->pixels = frame;
-            current_frame->delay = crt_delay;
-            crt_delay += current_gce.delay_time * 10;
-            bytesRead = compat_read(fd, &lzw_min_code_size, 1);
-            if (bytesRead < 1) RFAILEDP
-
-            if (!frame) RFAILEDP
-
-            lzw_init(&decoder, lzw_min_code_size);
-            pixel_index = 0;
-            
-
-            while (1) {
-                uint8_t sub_block_size;
-                uint8_t* sub_block_data;
-                size_t outSize;
-                const unsigned char* chunk;
-                int px;
-                
-                bytesRead = compat_read(fd, &sub_block_size, 1);
-                if (bytesRead < 1) {
-                    free(frame); free(img);
-                    RFAILEDP
-                }
-                if (sub_block_size == 0) break;
-                sub_block_data = malloc(sub_block_size);
-                if (!sub_block_data) { free(frame); free(img); RFAILEDP }
-                bytesRead = compat_read(fd, sub_block_data, sub_block_size);
-                if (bytesRead < sub_block_size) { free(sub_block_data); free(frame); free(img); RFAILEDP }
-
-                /*for (int i = 0; i < sub_block_size; i++) {*/
-                chunk = lzw_feed(&decoder, sub_block_data, sub_block_size, &outSize);
-
-                /* iterate through decoded bytes and write them into canvas or something */
-                for (px = 0; px<outSize; px++) {
-                    uint32_t pixeloff;
-                    uint16_t inner_row;
-                    uint16_t inner_col;
-                    uint16_t outer_row;
-                    uint16_t outer_col;
-                    int transp_idx;
-                    uint32_t color;
-                    
-                    pixeloff = pixel_index;
-                    inner_row = pixel_index / local_width;
-                    inner_col = pixel_index % local_width;
-                    outer_row = img_top + inner_row;
-                    outer_col = img_left + inner_col;
-
-                    if (interlace_flag) {
-                        outer_row = img_top + calc_row_interlaced(inner_row, local_height);
-                    }
-
-                    pixeloff = outer_row * width + outer_col;
-
-                    transp_idx = current_gce.transparent_color_flag ? current_gce.transparent_index : -1;
-
-                    /* here we write into the canvas based on the mode given */
-                    color = local_palette[chunk[px]];
-                    if (chunk[px] == bg_index) color = 0;
-                    if (pixeloff >= width * height) {
-                        free(sub_block_data); free(frame); free(img); RFAILEDP
-                    }
-                    switch (current_disposal) {
-                        case DISPOSE_NONE:
-                        case DISPOSE_UNSPECIFIED:
-                            if (chunk[px] != transp_idx) frame[pixeloff] =  color;
-                            break;
-                        case DISPOSE_BACKGROUND:
-                            /* only fill the transparent pixels with bg color i think */
-                            if (chunk[px] != transp_idx) frame[pixeloff] =  color;
-                            else frame[pixeloff] = 0; /*local_palette[bg_index];*/
-                            break;
-                        case DISPOSE_PREVIOUS:
-                            {
-                            uint32_t* prev_frame;
-                            if (crt_frame == 0) { free(frame); free(img); RFAILEDP }
-                            prev_frame = img->frames[crt_frame - 1]->pixels;
-                            if (chunk[px] != transp_idx) frame[pixeloff] =  color;
-                            else frame[pixeloff] = prev_frame[pixeloff];
-                            }
-                            break;
-                    }
-
-                    pixel_index++;
-                }
-                /*}*/
-                free(sub_block_data);
-            }
-            printf("%u: written %u pixels\n", crt_frame, pixel_index);
-            current_disposal = current_gce.disposal_method;
-            append_frame(img, current_frame);
-            crt_frame++;
-            
+            g_current_disposal = g_current_gce.disposal_method;
         } else if (byte == EXTENSION_DESCRIPTOR) {
-            uint8_t extension_identifier;
-            
-            bytesRead = compat_read(fd, &extension_identifier, 1);
-            if (bytesRead < 1) { free(img); RFAILEDP }
-            switch (extension_identifier) {
-                case GRAPHIC_CONTROL_EXTENSION:
-                    {
-                    uint8_t gce_block[6];
-                    uint8_t block_size;
-                    uint8_t packed_gce;
-                    uint16_t delay_time;
-                    uint8_t transp_index;
-                    uint8_t terminator;
-                    
-                    bytesRead = compat_read(fd, &gce_block, 5+1);
-
-                    block_size = gce_block[0];
-                    if (block_size != 4) RFAILEDP
-                    packed_gce = gce_block[1];
-                    delay_time = gce_block[2] | (gce_block[3] << 8);
-                    transp_index = gce_block[4];
-                    terminator = gce_block[5];
-                    if (terminator != 0) RFAILEDP
-                    if (delay_time < 1) delay_time = 10;
-                    
-                    current_gce.delay_time = delay_time;
-                    current_gce.transparent_index = transp_index;
-                    current_gce.disposal_method = (packed_gce >> 2) & 7;
-                    current_gce.transparent_color_flag = packed_gce & 0x1;
-                    printf("Frame %u: delay %dms, transp idx %d, disposal %d, transp flag %d\n", crt_frame, delay_time*10, transp_index, current_gce.disposal_method, current_gce.transparent_color_flag);
-                    }
-                    break;
-                case COMMENT_EXTENSION:
-                    seek_through_blocks(fd);
-                    break;
-                case PLAIN_TEXT_EXTENSION:
-                    fseek(fd, 13, SEEK_CUR); /* block size + 12 bytes of data */
-                    seek_through_blocks(fd);
-                    break;
-                case APPLICATION_EXTENSION:
-                    fseek(fd, 12, SEEK_CUR);
-                    seek_through_blocks(fd);
-                    break;
-                default:
-                    /* skip other extensions for now */
-                    while (1) {
-                        uint8_t sub_block_size;
-                        bytesRead = compat_read(fd, &sub_block_size, 1);
-                        if (bytesRead < 1) { free(img); RFAILEDP }
-                        if (sub_block_size == 0) break;
-                        /* skip the data */
-                        fseek(fd, sub_block_size, SEEK_CUR);
-                    }
-                    continue;
+            if (handle_extension() != 0) {
+                free(g_img);
+                RFAILEDP
             }
-        } 
+        }
     }
-
-    fclose(fd);
-    img->width = width;
-    img->height = height;
-    return img;
+    
+    debugf(DEBUG_VERBOSE, "Loaded GIF %s: %u frames, image size %u by %u pixels.", filename, g_img->frame_count, g_width, g_height);
+    fclose(g_fd);
+    g_img->width = g_width;
+    g_img->height = g_height;
+    return g_img;
 }

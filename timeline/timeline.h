@@ -37,6 +37,8 @@ struct TimelineObject {
     uint32_t timePosMs;
     uint32_t length;
 
+    uint32_t track;
+
     char* fileSource;
     struct LoadedFile* metadata;
     struct Effect* effectsList;

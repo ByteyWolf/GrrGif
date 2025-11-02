@@ -91,7 +91,7 @@ void fit_aspect_ratio(uint32_t src_width, uint32_t src_height,
 }
 
 void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
-    mutex_lock(&rendering);
+    //mutex_lock(&rendering);
     uint32_t canvas_width = width;
     uint32_t canvas_height = height;
     uint32_t offset_x = 0;
@@ -142,26 +142,27 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
             
             switch (crtObj->metadata->type) {
                 case FILE_STILLFRAME:
-                case FILE_ANIMATION:
-                    struct copydata src = {
-                        crtObj->metadata->imagePtr->frames[0]->pixels, 
-                        crtObj->metadata->imagePtr->width, 
-                        crtObj->metadata->imagePtr->height, 
-                        crtObj->metadata->imagePtr->width, 
-                        crtObj->metadata->imagePtr->height, 
-                        0, 0
-                    };
-                    struct copydata dest = {
-                        usePreview, 
-                        previewWidth,
-                        previewHeight,
-                        scaled_width, 
-                        scaled_height, 
-                        scaled_x, 
-                        scaled_y
-                    };
+                case FILE_ANIMATION: {
+                    struct copydata src;
+                    src.pixels=crtObj->metadata->imagePtr->frames[0]->pixels;
+                    src.bufferWidth=crtObj->metadata->imagePtr->width;
+                    src.bufferHeight=crtObj->metadata->imagePtr->height;
+                    src.width=crtObj->metadata->imagePtr->width;
+                    src.height=crtObj->metadata->imagePtr->height;
+                    src.x=0;
+                    src.y=0;
+
+                    struct copydata dest;
+                    dest.pixels = usePreview;
+                    dest.bufferWidth = previewWidth;
+                    dest.bufferHeight = previewHeight;
+                    dest.width = scaled_width;
+                    dest.height = scaled_height;
+                    dest.x = scaled_x;
+                    dest.y = scaled_y;
                     nearest_neighbor(&src, &dest);
                     break;
+                }
             }
         }
         crtObj = crtObj->nextObject;
@@ -169,5 +170,5 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     
 
     blit_rgb8888(usePreview, previewWidth, previewHeight, x + 20, y + 30);
-    mutex_unlock(&rendering);
+    //mutex_unlock(&rendering);
 }
