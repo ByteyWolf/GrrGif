@@ -1,5 +1,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xft/Xft.h>
+#include <X11/cursorfont.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -180,4 +181,27 @@ int draw_text_bg(const char *text, int x, int y, uint32_t fg_color, uint32_t bg_
     draw_rect(&(Rect){x, y - xft_font->ascent, text_width, text_height}, bg_color);
     draw_text(text, x, y, fg_color);
     return 1;
+}
+
+
+void set_cursor(int type) {
+    if (!dpy || !win) return;
+
+    unsigned int shape = XC_left_ptr;
+    switch(type) {
+        case CURSOR_NORMAL: shape = XC_left_ptr; break;
+        case CURSOR_BUSY:   shape = XC_watch; break;
+        case CURSOR_SIZEH:  shape = XC_sb_h_double_arrow; break;
+        case CURSOR_SIZEV:  shape = XC_sb_v_double_arrow; break;
+    }
+
+    Cursor cur = XCreateFontCursor(dpy, shape);
+    XDefineCursor(dpy, win, cur);
+    XFlush(dpy);
+    XFreeCursor(dpy, cur);
+}
+
+void set_window_title(char *title) {
+    XStoreName(dpy, win, title);
+    XFlush(dpy);
 }

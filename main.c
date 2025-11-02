@@ -11,6 +11,10 @@
 #define DEFAULT_WINDOW_WIDTH 800
 #define DEFAULT_WINDOW_HEIGHT 600
 
+#define DRAG_BORDER_NONE 0
+#define DRAG_BORDER_X 1
+#define DRAG_BORDER_Y 2
+
 struct image32* img_wolf = NULL;
 struct image32* img_banana = NULL;
 
@@ -21,6 +25,9 @@ extern uint32_t wwidth;
 extern uint32_t wheight;
 
 uint8_t pendingRedraw = 1;
+uint8_t eligibleToDragBorder = DRAG_BORDER_NONE;
+uint8_t draggingWindowBorder = DRAG_BORDER_NONE;
+uint32_t initialPos = 0;
 
 extern struct ModuleWindow windows[3];
 
@@ -75,13 +82,65 @@ int main(int argc, char *argv[]) {
     while (running) {
         while (poll_event(&event)) {
             if (event.type == EVENT_QUIT) {running = 0; break;}
-            if (event.type == EVENT_RESIZE) {
-                // resize windows appropriately
-                windows[POSITION_BOTTOM].width = wwidth;
-                windows[POSITION_TOPLEFT].height = (wheight - windows[POSITION_BOTTOM].height);
-                windows[POSITION_TOPRIGHT].height = (wheight - windows[POSITION_BOTTOM].height);
-                windows[POSITION_TOPRIGHT].width = (wwidth - windows[POSITION_TOPLEFT].width);
-                pendingRedraw = 1;
+            switch (event.type) {
+                case EVENT_RESIZE:
+                    windows[POSITION_BOTTOM].width = wwidth;
+                    windows[POSITION_TOPLEFT].height = (wheight - windows[POSITION_BOTTOM].height);
+                    windows[POSITION_TOPRIGHT].height = (wheight - windows[POSITION_BOTTOM].height);
+                    windows[POSITION_TOPRIGHT].width = (wwidth - windows[POSITION_TOPLEFT].width);
+                    pendingRedraw = 1;
+                    break;
+                case EVENT_MOUSEMOVE:
+                    if (draggingWindowBorder == DRAG_BORDER_NONE) {
+                        int rightEdge = windows[POSITION_TOPLEFT].width;
+                        int bottomEdge = windows[POSITION_TOPLEFT].height;
+
+                        if (event.x >= rightEdge - 4 && event.x <= rightEdge + 4) {
+                            set_cursor(CURSOR_SIZEH);
+                            eligibleToDragBorder = DRAG_BORDER_X;
+                        } else if (event.y >= bottomEdge - 4 && event.y <= bottomEdge + 4) {
+                            set_cursor(CURSOR_SIZEV);
+                            eligibleToDragBorder = DRAG_BORDER_Y;
+                        } else {
+                            set_cursor(CURSOR_NORMAL);
+                            eligibleToDragBorder = DRAG_BORDER_NONE;
+                        }
+                    }
+                    // oh we're dragging something
+                    else {
+                        int delta;
+                        switch (draggingWindowBorder) {
+                            case DRAG_BORDER_X:
+                                delta = event.x - initialPos;
+                                windows[POSITION_TOPLEFT].width += delta;
+                                windows[POSITION_TOPRIGHT].width -= delta;
+                                initialPos = event.x;
+                                break;
+                            case DRAG_BORDER_Y:
+                                delta = event.y - initialPos;
+                                windows[POSITION_TOPLEFT].height += delta;
+                                windows[POSITION_TOPRIGHT].height += delta;
+                                windows[POSITION_BOTTOM].height -= delta;
+                                initialPos = event.y;
+                                break;
+                        }
+                        pendingRedraw = 1;
+                    }
+                    break;
+                case EVENT_MOUSEBUTTONDOWN:
+                    draggingWindowBorder = eligibleToDragBorder;
+                    switch (draggingWindowBorder) {
+                        case DRAG_BORDER_X:
+                            initialPos = event.x;
+                            break;
+                        case DRAG_BORDER_Y:
+                            initialPos = event.y;
+                            break;
+                    }
+                    break;
+                case EVENT_MOUSEBUTTONUP:
+                    draggingWindowBorder = DRAG_BORDER_NONE;
+                    break;
             }
         }
 

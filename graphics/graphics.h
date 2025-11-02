@@ -28,6 +28,11 @@ typedef struct Event {
 #define FONT_SIZE_NORMAL 8
 #define FONT_SIZE_LARGE 12
 
+#define CURSOR_NORMAL   0
+#define CURSOR_BUSY     1
+#define CURSOR_SIZEH    2
+#define CURSOR_SIZEV    3
+
 
 int init_graphics(uint32_t width, uint32_t height);
 int draw_rect(Rect *rect, uint32_t color);
@@ -41,3 +46,6 @@ int poll_event(Event *event);
 int draw_text(const char *text, int x, int y, uint32_t color);
 int draw_text_bg(const char *text, int x, int y, uint32_t fg_color, uint32_t bg_color);
 int set_font_size(int font_size);
+
+void set_window_title(char *title);
+void set_cursor(int type);

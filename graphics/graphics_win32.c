@@ -96,7 +96,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 membmp = CreateCompatibleBitmap(hdc, wwidth, wheight);
                 SelectObject(memdc, membmp);
             }
-
+            pendingRedraw = 1;
             push_event(&evt);
             return 0;
 
@@ -356,4 +356,19 @@ int draw_text_bg(const char *text, int x, int y, uint32_t fg_color, uint32_t bg_
     TextOut(memdc, x, y, text, strlen(text));
 
     return 1;
+}
+
+void set_cursor(int type) {
+    HCURSOR cursor = NULL;
+    switch(type) {
+        case CURSOR_NORMAL: cursor = LoadCursor(NULL, IDC_ARROW); break;
+        case CURSOR_BUSY:   cursor = LoadCursor(NULL, IDC_WAIT); break;
+        case CURSOR_SIZEH:  cursor = LoadCursor(NULL, IDC_SIZEWE); break;
+        case CURSOR_SIZEV:  cursor = LoadCursor(NULL, IDC_SIZENS); break;
+    }
+    if (cursor) SetCursor(cursor);
+}
+
+void set_window_title(char *title) {
+    SetWindowTextA(hwnd, title);
 }
