@@ -4,6 +4,10 @@
 #include "modules/modfunc.h"
 #include "timeline/timeline.h"
 #include "debug.h"
+#include "graphics/gui_utility.h"
+
+#include "resources/icon.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +55,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    set_window_icon((uint32_t*)icon_bmp, 64, 64);
+
     debugf(DEBUG_INFO, "Loading sample GIFs...");
 
     img_wolf = parse("./tests/wolf.gif");
@@ -76,8 +82,6 @@ int main(int argc, char *argv[]) {
     test1->metadata = test1f;
 
     insertTimelineObj(test1);
-
-    // -------------------- Main loop --------------------
     
     while (running) {
         while (poll_event(&event)) {
@@ -181,10 +185,11 @@ int main(int argc, char *argv[]) {
             draw_rect(&window_rect, COLOR_GRAY);
 
             set_font_size(FONT_SIZE_LARGE);
-            draw_text_bg(current_window.title, window_rect.x + 10, window_rect.y + 11, COLOR_WHITE, COLOR_GRAY);
+            draw_text_bg(current_window.title, window_rect.x + 10, window_rect.y - 4, COLOR_WHITE, COLOR_GRAY);
         }
 
-        preview_draw(wwidth - windows[1].width, 0, windows[1].width, windows[1].height);
+        preview_draw(wwidth - windows[POSITION_TOPRIGHT].width, 0, windows[POSITION_TOPRIGHT].width, windows[POSITION_TOPRIGHT].height);
+        timeline_draw(0, wheight - windows[POSITION_BOTTOM].height, windows[POSITION_BOTTOM].width, windows[POSITION_BOTTOM].height);
 
         flush_graphics();
     }

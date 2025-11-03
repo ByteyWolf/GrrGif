@@ -42,6 +42,7 @@ int close_graphics();
 int clear_graphics(uint32_t color);
 int poll_event(Event *event);
 //int get_rgb8888(uint32_t *destbuf, uint32_t width, uint32_t height);
+void set_window_icon(uint32_t* pixels, uint32_t w, uint32_t h);
 
 int draw_text(const char *text, int x, int y, uint32_t color);
 int draw_text_bg(const char *text, int x, int y, uint32_t fg_color, uint32_t bg_color);
@@ -49,3 +50,5 @@ int set_font_size(int font_size);
 
 void set_window_title(char *title);
 void set_cursor(int type);
+
+void shrink_rect(Rect* rect, int pixels);

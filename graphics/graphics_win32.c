@@ -372,3 +372,72 @@ void set_cursor(int type) {
 void set_window_title(char *title) {
     SetWindowTextA(hwnd, title);
 }
+
+void set_window_icon(uint32_t *pixels, int width, int height) {
+    HDC hdc = GetDC(NULL);
+    HDC memDC = CreateCompatibleDC(hdc);
+
+    BITMAPV5HEADER *bi = malloc(sizeof(BITMAPV5HEADER));
+    if (!bi) return;
+
+    memset(bi, 0, sizeof(BITMAPV5HEADER));
+    bi->bV5Size = sizeof(BITMAPV5HEADER);
+    bi->bV5Width = width;
+    bi->bV5Height = -height; // top-down
+    bi->bV5Planes = 1;
+    bi->bV5BitCount = 32;
+    bi->bV5Compression = BI_BITFIELDS;
+    bi->bV5RedMask   = 0x00FF0000;
+    bi->bV5GreenMask = 0x0000FF00;
+    bi->bV5BlueMask  = 0x000000FF;
+    bi->bV5AlphaMask = 0xFF000000;
+
+    void *bits;
+    HBITMAP hBmp = CreateDIBSection(memDC, (BITMAPINFO *)bi, DIB_RGB_COLORS, &bits, NULL, 0);
+    if (!hBmp) {
+        free(bi);
+        DeleteDC(memDC);
+        ReleaseDC(NULL, hdc);
+        return;
+    }
+
+    memcpy(bits, pixels, width * height * 4);
+
+    HBITMAP hMono = CreateBitmap(width, height, 1, 1, NULL);
+    if (!hMono) {
+        DeleteObject(hBmp);
+        free(bi);
+        DeleteDC(memDC);
+        ReleaseDC(NULL, hdc);
+        return;
+    }
+
+    ICONINFO *ii = malloc(sizeof(ICONINFO));
+    if (!ii) {
+        DeleteObject(hBmp);
+        DeleteObject(hMono);
+        free(bi);
+        DeleteDC(memDC);
+        ReleaseDC(NULL, hdc);
+        return;
+    }
+
+    memset(ii, 0, sizeof(ICONINFO));
+    ii->fIcon = TRUE;
+    ii->hbmColor = hBmp;
+    ii->hbmMask = hMono;
+
+    HICON hIcon = CreateIconIndirect(ii);
+    if (hIcon) {
+        SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+        SendMessage(hwnd, WM_SETICON, ICON_BIG,   (LPARAM)hIcon);
+    }
+
+    free(ii);
+    DeleteObject(hBmp);
+    DeleteObject(hMono);
+    free(bi);
+    DeleteDC(memDC);
+    ReleaseDC(NULL, hdc);
+}
+

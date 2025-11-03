@@ -9,7 +9,7 @@ uint32_t timelineMaxMs;
 struct TimelineObject** sequentialAccess = 0;
 struct TimelineObject* timeline = 0;
 
-uint32_t crtTimelineMs;
+uint32_t crtTimelineMs = 0;
 uint32_t fileWidthPx = 1200;
 uint32_t fileHeightPx = 600;
 

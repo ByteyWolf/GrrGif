@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <X11/Xatom.h>
 #include "graphics.h"
 
 GC gc;
@@ -162,26 +163,48 @@ int close_graphics() {
     return 1;
 }
 
+#include <X11/Xft/Xft.h>
+#include <stdint.h>
+#include <string.h>
+
 int draw_text(const char *text, int x, int y, uint32_t color) {
     if (!xft_draw || !xft_font) return 0;
-    XRenderColor xrcolor = {(color >> 16 & 0xFF) * 257, (color >> 8 & 0xFF) * 257, (color & 0xFF) * 257, 0xFFFF};
+
+    int baseline_y = y + xft_font->ascent;
+
+    XRenderColor xrcolor = {
+        (color >> 16 & 0xFF) * 257,
+        (color >> 8  & 0xFF) * 257,
+        (color       & 0xFF) * 257,
+        0xFFFF
+    };
     XftColor xft_color;
-    XftColorAllocValue(dpy, DefaultVisual(dpy, DefaultScreen(dpy)), DefaultColormap(dpy, DefaultScreen(dpy)), &xrcolor, &xft_color);
-    XftDrawStringUtf8(xft_draw, &xft_color, xft_font, x, y, (const FcChar8 *)text, strlen(text));
-    XftColorFree(dpy, DefaultVisual(dpy, DefaultScreen(dpy)), DefaultColormap(dpy, DefaultScreen(dpy)), &xft_color);
+    XftColorAllocValue(dpy, DefaultVisual(dpy, DefaultScreen(dpy)),
+                       DefaultColormap(dpy, DefaultScreen(dpy)), &xrcolor, &xft_color);
+
+    XftDrawStringUtf8(xft_draw, &xft_color, xft_font, x, baseline_y,
+                      (const FcChar8 *)text, strlen(text));
+
+    XftColorFree(dpy, DefaultVisual(dpy, DefaultScreen(dpy)),
+                 DefaultColormap(dpy, DefaultScreen(dpy)), &xft_color);
+
     return 1;
 }
 
 int draw_text_bg(const char *text, int x, int y, uint32_t fg_color, uint32_t bg_color) {
     if (!xft_draw || !xft_font) return 0;
+
     XGlyphInfo extents;
     XftTextExtentsUtf8(dpy, xft_font, (const FcChar8 *)text, strlen(text), &extents);
     int text_width = extents.width;
     int text_height = xft_font->ascent + xft_font->descent;
-    draw_rect(&(Rect){x, y - xft_font->ascent, text_width, text_height}, bg_color);
+
+    draw_rect(&(Rect){x, y, text_width, text_height}, bg_color);
     draw_text(text, x, y, fg_color);
+
     return 1;
 }
+
 
 
 void set_cursor(int type) {
@@ -204,4 +227,19 @@ void set_cursor(int type) {
 void set_window_title(char *title) {
     XStoreName(dpy, win, title);
     XFlush(dpy);
+}
+
+void set_window_icon(uint32_t *pixels, uint32_t width, uint32_t height) {
+    Atom net_wm_icon = XInternAtom(dpy, "_NET_WM_ICON", False);
+    long data_len = 2 + (width * height);
+    uint32_t *data = malloc(sizeof(uint32_t) * data_len);
+    data[0] = width;
+    data[1] = height;
+    for (int i = 0; i < width * height; i++)
+        data[2 + i] = pixels[i];
+
+    XChangeProperty(dpy, win, net_wm_icon, XA_CARDINAL, 32,
+                    PropModeReplace, (unsigned char *)data, data_len);
+
+    free(data);
 }
