@@ -1,10 +1,11 @@
 #pragma once
 #include <stdint.h>
 
-#define ANCHOR_N 1
-#define ANCHOR_S 2
-#define ANCHOR_W 4
-#define ANCHOR_E 8
+#define BUTTON_STATE_NORMAL 0
+#define BUTTON_STATE_HOVER 1
+#define BUTTON_STATE_CLICK 2
+
+#define BUTTON_TIMELINE_PLAYSTOP 0
 
 struct GUIButton {
     uint8_t weldToWindow;
@@ -16,10 +17,12 @@ struct GUIButton {
     uint32_t buttonID;
     char* text;
     uint32_t iconID;
-
     struct GUIButton* nextButton;
 };
 
 struct GUIButton* createButton();
 void addButton(struct GUIButton* btn);
-void drawButton(struct GUIButton* btn);
+void drawButton(struct GUIButton* btn, uint8_t state);
+uint32_t getWindowX(uint8_t type);
+uint32_t getWindowY(uint8_t type);
+void buttonCallback(struct GUIButton* btn);

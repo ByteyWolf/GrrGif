@@ -16,6 +16,9 @@ extern uint32_t crtTimelineMs;
 extern uint32_t fileWidthPx;
 extern uint32_t fileHeightPx;
 
+extern uint8_t previewPlaying;
+extern uint32_t crtTimelineMs;
+
 uint32_t* pixelPreview = NULL;
 uint32_t previewHeight;
 uint32_t previewWidth;

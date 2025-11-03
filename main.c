@@ -28,18 +28,44 @@ const uint32_t COLOR_GRAY = 0x151515;
 extern uint32_t wwidth;
 extern uint32_t wheight;
 
+extern uint8_t previewPlaying;
+
 uint8_t pendingRedraw = 1;
 uint8_t eligibleToDragBorder = DRAG_BORDER_NONE;
 uint8_t draggingWindowBorder = DRAG_BORDER_NONE;
 uint32_t initialPos = 0;
 
 extern struct ModuleWindow windows[3];
+extern struct GUIButton* buttonBase;
+struct GUIButton* crtButtonHovering = 0;
+struct GUIButton* crtButtonHeld = 0;
 
 void shrink_rect(Rect* rect, int pixels) {
     rect->x += pixels;
     rect->y += pixels;
     rect->width -= pixels * 2;
     rect->height -= pixels * 2;
+}
+
+void hoverLogic(struct GUIButton* crtButton, Event event) {
+    if (!crtButton) {debugf(DEBUG_INFO, "Button hover error"); return;}
+    /*if (crtButtonHeld) {
+        drawButton(crtButton, BUTTON_STATE_NORMAL);
+        drawButton(crtButtonHeld, BUTTON_STATE_CLICK);
+        printf("held\n");
+    }*/
+    uint32_t left = getWindowX(crtButton->weldToWindow) + crtButton->localX;
+    uint32_t top = getWindowY(crtButton->weldToWindow) + crtButton->localY;
+    if (event.x >= left
+            && event.x <= left + crtButton->width
+            && event.y >= top
+            && event.y <= top + crtButton->height) {
+        drawButton(crtButton, BUTTON_STATE_HOVER);
+        crtButtonHovering = crtButton;
+    } else {
+        drawButton(crtButton, BUTTON_STATE_NORMAL);
+        crtButtonHovering = crtButtonHovering == crtButton ? 0 : crtButtonHovering;
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -84,8 +110,11 @@ int main(int argc, char *argv[]) {
     insertTimelineObj(test1);
     
     while (running) {
+        timeline_heartbeat();
+
         while (poll_event(&event)) {
             if (event.type == EVENT_QUIT) {running = 0; break;}
+            
             switch (event.type) {
                 case EVENT_RESIZE:
                     windows[POSITION_BOTTOM].width = wwidth;
@@ -95,6 +124,12 @@ int main(int argc, char *argv[]) {
                     pendingRedraw = 1;
                     break;
                 case EVENT_MOUSEMOVE:
+                    // respond to buttons
+                    struct GUIButton* crtButton = buttonBase;
+                    while (crtButton && !crtButtonHeld) {
+                        hoverLogic(crtButton, event);
+                        crtButton = crtButton->nextButton;
+                    }
                     if (draggingWindowBorder == DRAG_BORDER_NONE) {
                         int rightEdge = windows[POSITION_TOPLEFT].width;
                         int bottomEdge = windows[POSITION_TOPLEFT].height;
@@ -112,6 +147,7 @@ int main(int argc, char *argv[]) {
                     }
                     // oh we're dragging something
                     else {
+                        pendingRedraw = 1;
                         int delta;
                         switch (draggingWindowBorder) {
                             case DRAG_BORDER_X:
@@ -128,7 +164,6 @@ int main(int argc, char *argv[]) {
                                 initialPos = event.y;
                                 break;
                         }
-                        pendingRedraw = 1;
                     }
                     break;
                 case EVENT_MOUSEBUTTONDOWN:
@@ -141,20 +176,30 @@ int main(int argc, char *argv[]) {
                             initialPos = event.y;
                             break;
                     }
+                    if (crtButtonHovering && !crtButtonHeld) {
+                        crtButtonHeld = crtButtonHovering;
+                        crtButtonHovering = 0;
+                        drawButton(crtButtonHeld, BUTTON_STATE_CLICK);
+                        buttonCallback(crtButtonHeld);
+                    }
                     break;
                 case EVENT_MOUSEBUTTONUP:
                     draggingWindowBorder = DRAG_BORDER_NONE;
+                    if (crtButtonHeld)  hoverLogic(crtButtonHeld, event);
+                    crtButtonHeld = 0;
                     break;
             }
         }
 
         //clear_graphics(0x000000);
+        if (previewPlaying) preview_draw(wwidth - windows[POSITION_TOPRIGHT].width, 0, windows[POSITION_TOPRIGHT].width, windows[POSITION_TOPRIGHT].height);
+
         if (!pendingRedraw) continue;
         pendingRedraw = 0;
         debugf(DEBUG_VERBOSE, "A redraw is pending.");
         
         for (int winID = 0; winID < 3; winID++) {
-            debugf(DEBUG_VERBOSE, "Redrawing widget %u...", winID);
+            //debugf(DEBUG_VERBOSE, "Redrawing widget %u...", winID);
             struct ModuleWindow current_window = windows[winID];
             Rect window_rect;
             window_rect.x = 0;

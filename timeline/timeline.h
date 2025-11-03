@@ -47,3 +47,4 @@ struct TimelineObject {
 };
 
 int insertTimelineObj(struct TimelineObject* obj);
+void timeline_heartbeat();
