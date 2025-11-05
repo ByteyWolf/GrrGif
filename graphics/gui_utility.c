@@ -10,6 +10,10 @@ extern uint32_t wwidth;
 extern uint32_t wheight;
 
 extern uint8_t previewPlaying;
+extern uint8_t pendingRedraw;
+
+struct GUIButton* crtButtonHovering = 0;
+struct GUIButton* crtButtonHeld = 0;
 
 struct GUIButton* createButton() {
     struct GUIButton* btn = malloc(sizeof(struct GUIButton));
@@ -44,8 +48,9 @@ void addButton(struct GUIButton* btn) {
     buttonBase->nextButton = btn;
 }
 
-void drawButton(struct GUIButton* btn, uint8_t state) {
+void drawButton(struct GUIButton* btn) {
     Rect btnRect;
+    uint8_t state = btn->state;
     btnRect.x = btn->localX + getWindowX(btn->weldToWindow);
     btnRect.y = btn->localY + getWindowY(btn->weldToWindow);
     btnRect.height = btn->height;
@@ -83,6 +88,28 @@ void drawButton(struct GUIButton* btn, uint8_t state) {
         set_font_size(8);
         draw_text(btn->text, btnRect.x + 2, btnRect.y, textclr);
     }
+    pendingRedraw = 1;
+}
+
+void setButtonState(struct GUIButton* btn, uint8_t state) {
+    if (!btn) return;
+    if (state == BUTTON_STATE_NORMAL) {
+        crtButtonHeld = crtButtonHeld == btn ? 0 : crtButtonHeld;
+        crtButtonHovering = crtButtonHovering == btn ? 0 : crtButtonHovering;
+    } else {
+        switch (state) {
+            case BUTTON_STATE_HOVER:
+                setButtonState(crtButtonHovering, BUTTON_STATE_NORMAL);
+                crtButtonHovering = btn;
+                break;
+            case BUTTON_STATE_CLICK:
+                setButtonState(crtButtonHeld, BUTTON_STATE_NORMAL);
+                crtButtonHeld = btn;
+                break;
+        }
+    }
+    btn->state = state;
+    drawButton(btn);
 }
 
 void buttonCallback(struct GUIButton* btn) {

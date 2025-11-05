@@ -9,6 +9,8 @@
 #define FONT_ITALIC 2
 #define FONT_UNDERLINE 4
 
+#include <stdint.h>
+
 struct LoadedFile {
     uint8_t type;
 
@@ -48,3 +50,4 @@ struct TimelineObject {
 
 int insertTimelineObj(struct TimelineObject* obj);
 void timeline_heartbeat();
+uint64_t current_time_ms();

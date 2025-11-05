@@ -16,79 +16,55 @@ static int font_size = 12;
 
 extern uint8_t pendingRedraw;
 
-/* Event queue */
-#define MAX_EVENT_QUEUE 32
-static Event event_queue[MAX_EVENT_QUEUE];
-static int event_queue_head = 0;
-static int event_queue_tail = 0;
+Event* evt = 0;
 
-/* Helper: Add event to queue */
-static void push_event(Event *evt) {
-    int next = (event_queue_tail + 1) % MAX_EVENT_QUEUE;
-    if (next != event_queue_head) {
-        event_queue[event_queue_tail] = *evt;
-        event_queue_tail = next;
-    }
-}
-
-/* Helper: Get event from queue */
-static int pop_event(Event *evt) {
-    if (event_queue_head == event_queue_tail) {
-        return 0;
-    }
-    *evt = event_queue[event_queue_head];
-    event_queue_head = (event_queue_head + 1) % MAX_EVENT_QUEUE;
-    return 1;
-}
-
-/* Window procedure */
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    Event evt;
 
     switch (msg) {
         case WM_KEYDOWN:
-            evt.type = EVENT_KEYDOWN;
-            evt.key = (int)wParam;
-            push_event(&evt);
+            evt->type = EVENT_KEYDOWN;
+            evt->key = (int)wParam;
+            evt->pending = 1;
             return 0;
 
         case WM_KEYUP:
-            evt.type = EVENT_KEYUP;
-            evt.key = (int)wParam;
-            push_event(&evt);
+            evt->type = EVENT_KEYUP;
+            evt->key = (int)wParam;
+            evt->pending = 1;
             return 0;
 
         case WM_MOUSEMOVE:
-            evt.type = EVENT_MOUSEMOVE;
-            evt.x = LOWORD(lParam);
-            evt.y = HIWORD(lParam);
-            push_event(&evt);
+            evt->type = EVENT_MOUSEMOVE;
+            evt->x = LOWORD(lParam);
+            evt->y = HIWORD(lParam);
+            evt->pending = 1;
             return 0;
 
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_MBUTTONDOWN:
-            evt.type = EVENT_MOUSEBUTTONDOWN;
-            evt.x = LOWORD(lParam);
-            evt.y = HIWORD(lParam);
-            push_event(&evt);
+            evt->type = EVENT_MOUSEBUTTONDOWN;
+            evt->x = LOWORD(lParam);
+            evt->y = HIWORD(lParam);
+            evt->pending = 1;
             return 0;
 
         case WM_LBUTTONUP:
         case WM_RBUTTONUP:
         case WM_MBUTTONUP:
-            evt.type = EVENT_MOUSEBUTTONUP;
-            evt.x = LOWORD(lParam);
-            evt.y = HIWORD(lParam);
-            push_event(&evt);
+            evt->type = EVENT_MOUSEBUTTONUP;
+            evt->x = LOWORD(lParam);
+            evt->y = HIWORD(lParam);
+            evt->pending = 1;
             return 0;
 
         case WM_SIZE:
-            evt.type = EVENT_RESIZE;
-            evt.width = LOWORD(lParam);
-            evt.height = HIWORD(lParam);
-            wwidth = evt.width;
-            wheight = evt.height;
+            evt->pending = 1;
+            evt->type = EVENT_RESIZE;
+            evt->width = LOWORD(lParam);
+            evt->height = HIWORD(lParam);
+            wwidth = evt->width;
+            wheight = evt->height;
 
             /* Recreate backing buffer */
             if (memdc) {
@@ -97,12 +73,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 SelectObject(memdc, membmp);
             }
             pendingRedraw = 1;
-            push_event(&evt);
             return 0;
 
         case WM_CLOSE:
-            evt.type = EVENT_QUIT;
-            push_event(&evt);
+            evt->type = EVENT_QUIT;
+            evt->pending = 1;
             return 0;
 
         case WM_DESTROY:
@@ -111,20 +86,20 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
         case WM_ERASEBKGND:
             return 1; /* Prevent flicker */
-        case WM_PAINT:
-            pendingRedraw = 1;
-            return 0;
     }
 
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-int init_graphics(uint32_t width, uint32_t height) {
+int init_graphics(uint32_t width, uint32_t height, Event* event) {
     WNDCLASS wc;
     HINSTANCE hInstance;
     RECT rect;
 
+    //evt = malloc(sizeof(Event));
+
     hInstance = GetModuleHandle(NULL);
+    evt = event;
 
     /* Register window class */
     memset(&wc, 0, sizeof(wc));
@@ -201,22 +176,21 @@ int init_graphics(uint32_t width, uint32_t height) {
     return 1;
 }
 
-int poll_event(Event *event) {
+int poll_event() {
     MSG msg;
-
-    /* Process all pending Windows messages */
-    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+    printf("waiting for event... ");
+    if (GetMessage(&msg, NULL, 0, 0)) {
         if (msg.message == WM_QUIT) {
-            Event evt;
-            evt.type = EVENT_QUIT;
-            push_event(&evt);
+            evt->type = EVENT_QUIT;
+            evt->pending = 1;
         }
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-
-    /* Return queued event if available */
-    return pop_event(event);
+    printf("its here!\n");
+    if (!evt->pending) return 0;
+    evt->pending = 0;
+    return 1;
 }
 
 int set_font_size(int size) {
@@ -372,72 +346,3 @@ void set_cursor(int type) {
 void set_window_title(char *title) {
     SetWindowTextA(hwnd, title);
 }
-
-void set_window_icon(uint32_t *pixels, int width, int height) {
-    HDC hdc = GetDC(NULL);
-    HDC memDC = CreateCompatibleDC(hdc);
-
-    BITMAPV5HEADER *bi = malloc(sizeof(BITMAPV5HEADER));
-    if (!bi) return;
-
-    memset(bi, 0, sizeof(BITMAPV5HEADER));
-    bi->bV5Size = sizeof(BITMAPV5HEADER);
-    bi->bV5Width = width;
-    bi->bV5Height = -height; // top-down
-    bi->bV5Planes = 1;
-    bi->bV5BitCount = 32;
-    bi->bV5Compression = BI_BITFIELDS;
-    bi->bV5RedMask   = 0x00FF0000;
-    bi->bV5GreenMask = 0x0000FF00;
-    bi->bV5BlueMask  = 0x000000FF;
-    bi->bV5AlphaMask = 0xFF000000;
-
-    void *bits;
-    HBITMAP hBmp = CreateDIBSection(memDC, (BITMAPINFO *)bi, DIB_RGB_COLORS, &bits, NULL, 0);
-    if (!hBmp) {
-        free(bi);
-        DeleteDC(memDC);
-        ReleaseDC(NULL, hdc);
-        return;
-    }
-
-    memcpy(bits, pixels, width * height * 4);
-
-    HBITMAP hMono = CreateBitmap(width, height, 1, 1, NULL);
-    if (!hMono) {
-        DeleteObject(hBmp);
-        free(bi);
-        DeleteDC(memDC);
-        ReleaseDC(NULL, hdc);
-        return;
-    }
-
-    ICONINFO *ii = malloc(sizeof(ICONINFO));
-    if (!ii) {
-        DeleteObject(hBmp);
-        DeleteObject(hMono);
-        free(bi);
-        DeleteDC(memDC);
-        ReleaseDC(NULL, hdc);
-        return;
-    }
-
-    memset(ii, 0, sizeof(ICONINFO));
-    ii->fIcon = TRUE;
-    ii->hbmColor = hBmp;
-    ii->hbmMask = hMono;
-
-    HICON hIcon = CreateIconIndirect(ii);
-    if (hIcon) {
-        SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
-        SendMessage(hwnd, WM_SETICON, ICON_BIG,   (LPARAM)hIcon);
-    }
-
-    free(ii);
-    DeleteObject(hBmp);
-    DeleteObject(hMono);
-    free(bi);
-    DeleteDC(memDC);
-    ReleaseDC(NULL, hdc);
-}
-

@@ -8,7 +8,8 @@ typedef struct Rect {
 } Rect;
 
 typedef struct Event {
-    int type;
+    uint8_t type;
+    uint8_t pending;
     int x;
     int y;
     int key;
@@ -34,13 +35,13 @@ typedef struct Event {
 #define CURSOR_SIZEV    3
 
 
-int init_graphics(uint32_t width, uint32_t height);
+int init_graphics(uint32_t width, uint32_t height, Event *event);
 int draw_rect(Rect *rect, uint32_t color);
 int blit_rgb8888(uint32_t *pixels, uint32_t width, uint32_t height, uint32_t x, uint32_t y);
 int flush_graphics();
 int close_graphics();
 int clear_graphics(uint32_t color);
-int poll_event(Event *event);
+int poll_event();
 //int get_rgb8888(uint32_t *destbuf, uint32_t width, uint32_t height);
 void set_window_icon(uint32_t* pixels, uint32_t w, uint32_t h);
 

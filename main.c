@@ -6,8 +6,6 @@
 #include "debug.h"
 #include "graphics/gui_utility.h"
 
-#include "resources/icon.h"
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,8 +35,8 @@ uint32_t initialPos = 0;
 
 extern struct ModuleWindow windows[3];
 extern struct GUIButton* buttonBase;
-struct GUIButton* crtButtonHovering = 0;
-struct GUIButton* crtButtonHeld = 0;
+extern struct GUIButton* crtButtonHovering;
+extern struct GUIButton* crtButtonHeld;
 
 void shrink_rect(Rect* rect, int pixels) {
     rect->x += pixels;
@@ -47,41 +45,39 @@ void shrink_rect(Rect* rect, int pixels) {
     rect->height -= pixels * 2;
 }
 
-void hoverLogic(struct GUIButton* crtButton, Event event) {
+void hoverLogic(struct GUIButton* crtButton, Event* event) {
     if (!crtButton) {debugf(DEBUG_INFO, "Button hover error"); return;}
     /*if (crtButtonHeld) {
         drawButton(crtButton, BUTTON_STATE_NORMAL);
         drawButton(crtButtonHeld, BUTTON_STATE_CLICK);
         printf("held\n");
     }*/
+            
     uint32_t left = getWindowX(crtButton->weldToWindow) + crtButton->localX;
     uint32_t top = getWindowY(crtButton->weldToWindow) + crtButton->localY;
-    if (event.x >= left
-            && event.x <= left + crtButton->width
-            && event.y >= top
-            && event.y <= top + crtButton->height) {
-        drawButton(crtButton, BUTTON_STATE_HOVER);
-        crtButtonHovering = crtButton;
+    if (event->x >= left
+            && event->x <= left + crtButton->width
+            && event->y >= top
+            && event->y <= top + crtButton->height) {
+        setButtonState(crtButton, BUTTON_STATE_HOVER);
     } else {
-        drawButton(crtButton, BUTTON_STATE_NORMAL);
-        crtButtonHovering = crtButtonHovering == crtButton ? 0 : crtButtonHovering;
+        setButtonState(crtButton, BUTTON_STATE_NORMAL);
     }
+    pendingRedraw = 1;
 }
 
 int main(int argc, char *argv[]) {
     printf("GrrGif v0.0\n(c) Copyright 2025 Bytey Wolf. All rights reserved.\n\n");
 
     int running = 1;
-    Event event;
+    Event* event = malloc(sizeof(Event));
 
     debugf(DEBUG_INFO, "Initializing graphics system...");
 
-    if (!init_graphics(WINDOW_WIDTH, WINDOW_HEIGHT)) {
+    if (!init_graphics(WINDOW_WIDTH, WINDOW_HEIGHT, event)) {
         fprintf(stderr, "Failed to initialize graphics\n");
         return 1;
     }
-
-    set_window_icon((uint32_t*)icon_bmp, 64, 64);
 
     debugf(DEBUG_INFO, "Loading sample GIFs...");
 
@@ -112,10 +108,11 @@ int main(int argc, char *argv[]) {
     while (running) {
         timeline_heartbeat();
 
-        while (poll_event(&event)) {
-            if (event.type == EVENT_QUIT) {running = 0; break;}
+        while (poll_event()) {
+            printf("hi from main %u\n", current_time_ms());
+            if (event->type == EVENT_QUIT) {running = 0; break;}
             
-            switch (event.type) {
+            switch (event->type) {
                 case EVENT_RESIZE:
                     windows[POSITION_BOTTOM].width = wwidth;
                     windows[POSITION_TOPLEFT].height = (wheight - windows[POSITION_BOTTOM].height);
@@ -123,7 +120,7 @@ int main(int argc, char *argv[]) {
                     windows[POSITION_TOPRIGHT].width = (wwidth - windows[POSITION_TOPLEFT].width);
                     pendingRedraw = 1;
                     break;
-                case EVENT_MOUSEMOVE:
+                case EVENT_MOUSEMOVE: {
                     // respond to buttons
                     struct GUIButton* crtButton = buttonBase;
                     while (crtButton && !crtButtonHeld) {
@@ -134,10 +131,10 @@ int main(int argc, char *argv[]) {
                         int rightEdge = windows[POSITION_TOPLEFT].width;
                         int bottomEdge = windows[POSITION_TOPLEFT].height;
 
-                        if (event.x >= rightEdge - 4 && event.x <= rightEdge + 4) {
+                        if (event->x >= rightEdge - 4 && event->x <= rightEdge + 4) {
                             set_cursor(CURSOR_SIZEH);
                             eligibleToDragBorder = DRAG_BORDER_X;
-                        } else if (event.y >= bottomEdge - 4 && event.y <= bottomEdge + 4) {
+                        } else if (event->y >= bottomEdge - 4 && event->y <= bottomEdge + 4) {
                             set_cursor(CURSOR_SIZEV);
                             eligibleToDragBorder = DRAG_BORDER_Y;
                         } else {
@@ -151,42 +148,42 @@ int main(int argc, char *argv[]) {
                         int delta;
                         switch (draggingWindowBorder) {
                             case DRAG_BORDER_X:
-                                delta = event.x - initialPos;
+                                delta = event->x - initialPos;
                                 windows[POSITION_TOPLEFT].width += delta;
                                 windows[POSITION_TOPRIGHT].width -= delta;
-                                initialPos = event.x;
+                                initialPos = event->x;
                                 break;
                             case DRAG_BORDER_Y:
-                                delta = event.y - initialPos;
+                                delta = event->y - initialPos;
                                 windows[POSITION_TOPLEFT].height += delta;
                                 windows[POSITION_TOPRIGHT].height += delta;
                                 windows[POSITION_BOTTOM].height -= delta;
-                                initialPos = event.y;
+                                initialPos = event->y;
                                 break;
                         }
                     }
                     break;
+                }
                 case EVENT_MOUSEBUTTONDOWN:
                     draggingWindowBorder = eligibleToDragBorder;
                     switch (draggingWindowBorder) {
                         case DRAG_BORDER_X:
-                            initialPos = event.x;
+                            initialPos = event->x;
                             break;
                         case DRAG_BORDER_Y:
-                            initialPos = event.y;
+                            initialPos = event->y;
                             break;
                     }
                     if (crtButtonHovering && !crtButtonHeld) {
-                        crtButtonHeld = crtButtonHovering;
-                        crtButtonHovering = 0;
-                        drawButton(crtButtonHeld, BUTTON_STATE_CLICK);
+                        setButtonState(crtButtonHovering, BUTTON_STATE_CLICK);
                         buttonCallback(crtButtonHeld);
                     }
                     break;
                 case EVENT_MOUSEBUTTONUP:
                     draggingWindowBorder = DRAG_BORDER_NONE;
+                    //setButtonState(crtButtonHeld, BUTTON_STATE_NORMAL);
                     if (crtButtonHeld)  hoverLogic(crtButtonHeld, event);
-                    crtButtonHeld = 0;
+                    
                     break;
             }
         }
@@ -196,7 +193,6 @@ int main(int argc, char *argv[]) {
 
         if (!pendingRedraw) continue;
         pendingRedraw = 0;
-        debugf(DEBUG_VERBOSE, "A redraw is pending.");
         
         for (int winID = 0; winID < 3; winID++) {
             //debugf(DEBUG_VERBOSE, "Redrawing widget %u...", winID);
