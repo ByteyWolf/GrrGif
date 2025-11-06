@@ -17,4 +17,4 @@
 #define DISPOSE_BACKGROUND 2
 #define DISPOSE_PREVIOUS 3
 
-struct image32* parse(const char *filename);
+struct imageV2* parse(const char *filename);

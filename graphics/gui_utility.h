@@ -1,4 +1,5 @@
 #pragma once
+#include "graphics.h"
 #include <stdint.h>
 
 #define BUTTON_STATE_NORMAL 0
@@ -29,3 +30,4 @@ uint32_t getWindowX(uint8_t type);
 uint32_t getWindowY(uint8_t type);
 void buttonCallback(struct GUIButton* btn);
 void setButtonState(struct GUIButton* btn, uint8_t state);
+int draw_rect_bound(Rect *rect, Rect *bounds, uint32_t color);

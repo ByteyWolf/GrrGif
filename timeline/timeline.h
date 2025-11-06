@@ -15,7 +15,7 @@ struct LoadedFile {
     uint8_t type;
 
     // applicable if type is 0 or 1
-    struct image32* imagePtr;
+    struct imageV2* imagePtr;
 
     // applicable if type is 2
     char* text;

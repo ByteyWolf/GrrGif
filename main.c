@@ -6,6 +6,10 @@
 #include "debug.h"
 #include "graphics/gui_utility.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,8 +21,8 @@
 #define DRAG_BORDER_X 1
 #define DRAG_BORDER_Y 2
 
-struct image32* img_wolf = NULL;
-struct image32* img_banana = NULL;
+struct imageV2* img_wolf = NULL;
+struct imageV2* img_banana = NULL;
 
 const uint32_t COLOR_WHITE = 0xFFFFFF;
 const uint32_t COLOR_GRAY = 0x151515;
@@ -66,6 +70,77 @@ void hoverLogic(struct GUIButton* crtButton, Event* event) {
     pendingRedraw = 1;
 }
 
+void renderUI() {
+    while (1) {
+        Sleep(10);
+        timeline_heartbeat();
+        if (!pendingRedraw) continue;
+        pendingRedraw = 0;
+        
+        for (int winID = 0; winID < 3; winID++) {
+            //debugf(DEBUG_VERBOSE, "Redrawing widget %u...", winID);
+            struct ModuleWindow current_window = windows[winID];
+            Rect window_rect;
+            window_rect.x = 0;
+            window_rect.y = 0;
+            window_rect.width = current_window.width;
+            window_rect.height = current_window.height;
+    
+            switch (current_window.position) {
+                case POSITION_TOPLEFT:
+                    window_rect.x = 0;
+                    window_rect.y = 0;
+                    break;
+                case POSITION_TOPRIGHT:
+                    window_rect.x = wwidth - current_window.width;
+                    window_rect.y = 0;
+                    break;
+                case POSITION_BOTTOM:
+                    window_rect.x = 0;
+                    window_rect.y = wheight - current_window.height;
+                    break;
+            }
+            draw_rect(&window_rect, 0x0A0A0A);
+            shrink_rect(&window_rect, 2);
+            draw_rect(&window_rect, COLOR_GRAY);
+            shrink_rect(&window_rect, 5);
+            draw_rect(&window_rect, 0x303030);
+            shrink_rect(&window_rect, 2);
+            draw_rect(&window_rect, COLOR_GRAY);
+    
+            set_font_size(FONT_SIZE_LARGE);
+            draw_text_bg(current_window.title, window_rect.x + 10, window_rect.y - 4, COLOR_WHITE, COLOR_GRAY);
+        }
+    
+        preview_draw(wwidth - windows[POSITION_TOPRIGHT].width, 0, windows[POSITION_TOPRIGHT].width, windows[POSITION_TOPRIGHT].height);
+        timeline_draw(0, wheight - windows[POSITION_BOTTOM].height, windows[POSITION_BOTTOM].width, windows[POSITION_BOTTOM].height);
+    
+        struct GUIButton* crtButton = buttonBase;
+        while (crtButton) {
+            drawButton(crtButton);
+            crtButton = crtButton->nextButton;
+        }
+    
+        flush_graphics();
+    }
+}
+
+#ifdef _WIN32
+DWORD WINAPI BackgroundThread(LPVOID lpParam) {
+    renderUI();
+    return 0;
+}
+
+void scheduleRendering() {
+    HANDLE hThread;
+    DWORD dwThreadId;
+
+    hThread = CreateThread(NULL, 0, BackgroundThread, NULL, 0, &dwThreadId);
+    if (hThread == NULL) { printf("ERROR making bg thread!\n"); return;}
+    CloseHandle(hThread);
+}
+#endif
+
 int main(int argc, char *argv[]) {
     printf("GrrGif v0.0\n(c) Copyright 2025 Bytey Wolf. All rights reserved.\n\n");
 
@@ -104,9 +179,9 @@ int main(int argc, char *argv[]) {
     test1->metadata = test1f;
 
     insertTimelineObj(test1);
+    scheduleRendering();
     
     while (running) {
-        timeline_heartbeat(); // todo: this should be on another thread!
 
         while (poll_event()) {
             if (event->type == EVENT_QUIT) {running = 0; break;}
@@ -164,7 +239,6 @@ int main(int argc, char *argv[]) {
                     break;
                 }
                 case EVENT_MOUSEBUTTONDOWN:
-                    printf("mouse click %u %u\n", event->x, event->y);
                     draggingWindowBorder = eligibleToDragBorder;
                     switch (draggingWindowBorder) {
                         case DRAG_BORDER_X:
@@ -190,49 +264,8 @@ int main(int argc, char *argv[]) {
 
         //clear_graphics(0x000000);
         if (previewPlaying) preview_draw(wwidth - windows[POSITION_TOPRIGHT].width, 0, windows[POSITION_TOPRIGHT].width, windows[POSITION_TOPRIGHT].height);
-
-        if (!pendingRedraw) continue;
-        pendingRedraw = 0;
+        //renderUI();
         
-        for (int winID = 0; winID < 3; winID++) {
-            //debugf(DEBUG_VERBOSE, "Redrawing widget %u...", winID);
-            struct ModuleWindow current_window = windows[winID];
-            Rect window_rect;
-            window_rect.x = 0;
-            window_rect.y = 0;
-            window_rect.width = current_window.width;
-            window_rect.height = current_window.height;
-
-            switch (current_window.position) {
-                case POSITION_TOPLEFT:
-                    window_rect.x = 0;
-                    window_rect.y = 0;
-                    break;
-                case POSITION_TOPRIGHT:
-                    window_rect.x = wwidth - current_window.width;
-                    window_rect.y = 0;
-                    break;
-                case POSITION_BOTTOM:
-                    window_rect.x = 0;
-                    window_rect.y = wheight - current_window.height;
-                    break;
-            }
-            draw_rect(&window_rect, 0x0A0A0A);
-            shrink_rect(&window_rect, 2);
-            draw_rect(&window_rect, COLOR_GRAY);
-            shrink_rect(&window_rect, 5);
-            draw_rect(&window_rect, 0x303030);
-            shrink_rect(&window_rect, 2);
-            draw_rect(&window_rect, COLOR_GRAY);
-
-            set_font_size(FONT_SIZE_LARGE);
-            draw_text_bg(current_window.title, window_rect.x + 10, window_rect.y - 4, COLOR_WHITE, COLOR_GRAY);
-        }
-
-        preview_draw(wwidth - windows[POSITION_TOPRIGHT].width, 0, windows[POSITION_TOPRIGHT].width, windows[POSITION_TOPRIGHT].height);
-        timeline_draw(0, wheight - windows[POSITION_BOTTOM].height, windows[POSITION_BOTTOM].width, windows[POSITION_BOTTOM].height);
-
-        flush_graphics();
     }
 
     debugf(DEBUG_INFO, "Bye-bye...");

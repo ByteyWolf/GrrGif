@@ -27,16 +27,6 @@ Mutex rendering;
 extern struct ModuleWindow windows[3];
 extern const uint32_t COLOR_GRAY;
 
-struct copydata {
-    uint32_t* pixels;
-    uint32_t bufferWidth;
-    uint32_t bufferHeight;
-    uint32_t width;
-    uint32_t height;
-    uint32_t x;
-    uint32_t y;
-};
-
 int alloc_preview() {
     if (pixelPreview) free(pixelPreview);
     previewWidth = windows[1].width - 40;
@@ -46,35 +36,6 @@ int alloc_preview() {
     memset(new, COLOR_GRAY, previewWidth * previewHeight * sizeof(uint32_t));
     pixelPreview = new;
     return 0;
-}
-
-
-void nearest_neighbor(struct copydata* src, struct copydata* dst) {
-    if (!src || !dst || !src->pixels || !dst->pixels) return;
-    
-    float xScale = (float)src->width / dst->width;
-    float yScale = (float)src->height / dst->height;
-    
-    for (uint32_t dy = 0; dy < dst->height; dy++) {
-        uint32_t srcY = (uint32_t)(dy * yScale);
-        if (srcY >= src->height) srcY = src->height - 1;
-        
-        for (uint32_t dx = 0; dx < dst->width; dx++) {
-            uint32_t srcX = (uint32_t)(dx * xScale);
-            if (srcX >= src->width) srcX = src->width - 1;
-            
-            uint32_t pixel = src->pixels[srcY * src->bufferWidth + srcX];
-            uint8_t alpha = pixel >> 24;
-            if (alpha < 255) continue;
-            
-            uint32_t dstX = dst->x + dx;
-            uint32_t dstY = dst->y + dy;
-            
-            if (dstX >= dst->bufferWidth || dstY >= dst->bufferHeight) continue;
-            
-            dst->pixels[dstY * dst->bufferWidth + dstX] = pixel;
-        }
-    }
 }
 
 void fit_aspect_ratio(uint32_t src_width, uint32_t src_height,
@@ -154,14 +115,7 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
                             if (absoluteMs >= crtTimelineMs) break;
                         }
                     }
-                    struct copydata src;
-                    src.pixels=crtObj->metadata->imagePtr->frames[frameId]->pixels;
-                    src.bufferWidth=crtObj->metadata->imagePtr->width;
-                    src.bufferHeight=crtObj->metadata->imagePtr->height;
-                    src.width=crtObj->metadata->imagePtr->width;
-                    src.height=crtObj->metadata->imagePtr->height;
-                    src.x=0;
-                    src.y=0;
+                    
 
                     struct copydata dest;
                     dest.pixels = usePreview;
@@ -171,7 +125,7 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
                     dest.height = scaled_height;
                     dest.x = scaled_x;
                     dest.y = scaled_y;
-                    nearest_neighbor(&src, &dest);
+                    draw_imageV2(crtObj->metadata->imagePtr, frameId, &dest);
                     break;
                 }
             }

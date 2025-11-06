@@ -178,7 +178,7 @@ int init_graphics(uint32_t width, uint32_t height, Event* event) {
 
 int poll_event() {
     MSG msg;
-    if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+    if (GetMessage(&msg, NULL, 0, 0)) {
         if (msg.message == WM_QUIT) {
             evt->type = EVENT_QUIT;
             evt->pending = 1;

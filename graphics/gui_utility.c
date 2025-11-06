@@ -120,3 +120,23 @@ void buttonCallback(struct GUIButton* btn) {
         }
     }
 }
+
+int draw_rect_bound(Rect *rect, Rect *bounds, uint32_t color) {
+    if (rect->x < bounds->x) {
+        rect->width -= (bounds->x - rect->x);
+        rect->x = bounds->x;
+    }
+    if (rect->y < bounds->y) {
+        rect->height -= (bounds->y - rect->y);
+        rect->y = bounds->y;
+    }
+    if (rect->x + rect->width > bounds->x + bounds->width) {
+        rect->width -= (rect->x + rect->width) - (bounds->x + bounds->width);
+    }
+    if (rect->y + rect->height > bounds->y + bounds->height) {
+        rect->height -= (rect->y + rect->height) - (bounds->y + bounds->height);
+    }
+    draw_rect(rect, color);
+}
+
+

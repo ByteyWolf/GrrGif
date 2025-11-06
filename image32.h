@@ -20,3 +20,29 @@ struct gce_data {
     uint8_t disposal_method;
     uint8_t transparent_color_flag;
 };
+
+struct imageV2 {
+    uint32_t width;
+    uint32_t height;
+    uint32_t frame_count;
+    struct frameV2** frames;
+};
+
+struct frameV2 {
+    uint32_t delay;
+    uint32_t palette[256];
+    uint16_t transp_idx;
+    uint8_t* pixels;
+};
+
+struct copydata {
+    uint32_t* pixels;
+    uint32_t bufferWidth;
+    uint32_t bufferHeight;
+    uint32_t width;
+    uint32_t height;
+    uint32_t x;
+    uint32_t y;
+};
+
+void draw_imageV2(struct imageV2* img, uint32_t frameId, struct copydata* destination);
