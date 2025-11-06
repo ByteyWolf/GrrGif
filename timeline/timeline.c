@@ -78,7 +78,5 @@ void timeline_heartbeat() {
         crtTimelineMs += (current_time_ms() - lastTimelineEpoch);
         crtTimelineMs %= timelineLengthMs;
         lastTimelineEpoch = current_time_ms();
-        //pendingRedraw = 1;
-        printf("\r%u/%u", crtTimelineMs, timelineLengthMs);
     }
 }

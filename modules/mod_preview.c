@@ -149,12 +149,13 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
                     uint32_t frameId = 0;
                     if (crtObj->metadata->type == FILE_ANIMATION) {
                         // maybe binary search here would be better?
-                        for (frameId = 0; frameId<crtObj->metadata->imagePtr->frame_count; frameId++) {
-                            if (crtObj->metadata->imagePtr->frames[0]->delay + begin > crtTimelineMs) break;
+                        for (frameId = 0; frameId<crtObj->metadata->imagePtr->frame_count-1; frameId++) {
+                            uint32_t absoluteMs = crtObj->metadata->imagePtr->frames[frameId]->delay + begin;
+                            if (absoluteMs >= crtTimelineMs) break;
                         }
                     }
                     struct copydata src;
-                    src.pixels=crtObj->metadata->imagePtr->frames[0]->pixels;
+                    src.pixels=crtObj->metadata->imagePtr->frames[frameId]->pixels;
                     src.bufferWidth=crtObj->metadata->imagePtr->width;
                     src.bufferHeight=crtObj->metadata->imagePtr->height;
                     src.width=crtObj->metadata->imagePtr->width;

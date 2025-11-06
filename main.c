@@ -100,16 +100,15 @@ int main(int argc, char *argv[]) {
     test1->effectsList = 0;
     test1->fileSource = 0;
     test1->timePosMs = 0;
-    test1->length = 100;
+    test1->length = 600;
     test1->metadata = test1f;
 
     insertTimelineObj(test1);
     
     while (running) {
-        timeline_heartbeat();
+        timeline_heartbeat(); // todo: this should be on another thread!
 
         while (poll_event()) {
-            printf("hi from main %u\n", current_time_ms());
             if (event->type == EVENT_QUIT) {running = 0; break;}
             
             switch (event->type) {
@@ -165,6 +164,7 @@ int main(int argc, char *argv[]) {
                     break;
                 }
                 case EVENT_MOUSEBUTTONDOWN:
+                    printf("mouse click %u %u\n", event->x, event->y);
                     draggingWindowBorder = eligibleToDragBorder;
                     switch (draggingWindowBorder) {
                         case DRAG_BORDER_X:

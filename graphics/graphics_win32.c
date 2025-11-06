@@ -178,8 +178,7 @@ int init_graphics(uint32_t width, uint32_t height, Event* event) {
 
 int poll_event() {
     MSG msg;
-    printf("waiting for event... ");
-    if (GetMessage(&msg, NULL, 0, 0)) {
+    if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_QUIT) {
             evt->type = EVENT_QUIT;
             evt->pending = 1;
@@ -187,7 +186,7 @@ int poll_event() {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-    printf("its here!\n");
+    Sleep(1);
     if (!evt->pending) return 0;
     evt->pending = 0;
     return 1;
