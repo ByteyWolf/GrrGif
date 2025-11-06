@@ -41,8 +41,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             return 0;
 
         case WM_LBUTTONDOWN:
-        case WM_RBUTTONDOWN:
-        case WM_MBUTTONDOWN:
             evt->type = EVENT_MOUSEBUTTONDOWN;
             evt->x = LOWORD(lParam);
             evt->y = HIWORD(lParam);
@@ -50,9 +48,15 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             return 0;
 
         case WM_LBUTTONUP:
-        case WM_RBUTTONUP:
-        case WM_MBUTTONUP:
             evt->type = EVENT_MOUSEBUTTONUP;
+            evt->x = LOWORD(lParam);
+            evt->y = HIWORD(lParam);
+            evt->pending = 1;
+            return 0;
+
+        case WM_MOUSEWHEEL:
+            evt->type = EVENT_MOUSESCROLL;
+            evt->scrollDelta = GET_WHEEL_DELTA_WPARAM(wParam);
             evt->x = LOWORD(lParam);
             evt->y = HIWORD(lParam);
             evt->pending = 1;
@@ -289,6 +293,33 @@ int close_graphics() {
 
 int draw_text(const char *text, int x, int y, uint32_t color) {
     if (!memdc) return 0;
+
+    SetTextColor(memdc, RGB(
+        (color >> 16) & 0xFF,
+                            (color >> 8) & 0xFF,
+                            color & 0xFF
+    ));
+
+    SetBkMode(memdc, TRANSPARENT);
+    TextOut(memdc, x, y, text, strlen(text));
+
+    return 1;
+}
+
+int draw_text_anchor(const char *text, int x, int y, uint32_t color, uint8_t anchor) {
+    SIZE text_size;
+    
+    if (!memdc) return 0;
+
+    GetTextExtentPoint32(memdc, text, strlen(text), &text_size);
+    switch (anchor) {
+        case ANCHOR_MIDDLE:
+            x -= text_size.cx / 2;
+            break;
+        case ANCHOR_RIGHT:
+            x -= text_size.cx;
+            break;
+    }
 
     SetTextColor(memdc, RGB(
         (color >> 16) & 0xFF,

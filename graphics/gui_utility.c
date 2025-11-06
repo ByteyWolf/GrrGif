@@ -137,6 +137,7 @@ int draw_rect_bound(Rect *rect, Rect *bounds, uint32_t color) {
         rect->height -= (rect->y + rect->height) - (bounds->y + bounds->height);
     }
     draw_rect(rect, color);
+    return 1;
 }
 
 

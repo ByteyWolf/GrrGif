@@ -15,6 +15,7 @@ typedef struct Event {
     int key;
     int width;
     int height;
+    int scrollDelta;
 } Event;
 
 #define EVENT_NONE 0
@@ -25,9 +26,14 @@ typedef struct Event {
 #define EVENT_MOUSEBUTTONUP 5
 #define EVENT_QUIT 6
 #define EVENT_RESIZE 7
+#define EVENT_MOUSESCROLL 8
 
 #define FONT_SIZE_NORMAL 8
 #define FONT_SIZE_LARGE 12
+
+#define ANCHOR_LEFT 0
+#define ANCHOR_MIDDLE 1
+#define ANCHOR_RIGHT 2
 
 #define CURSOR_NORMAL   0
 #define CURSOR_BUSY     1
@@ -46,6 +52,7 @@ int poll_event();
 void set_window_icon(uint32_t* pixels, uint32_t w, uint32_t h);
 
 int draw_text(const char *text, int x, int y, uint32_t color);
+int draw_text_anchor(const char *text, int x, int y, uint32_t color, uint8_t anchor);
 int draw_text_bg(const char *text, int x, int y, uint32_t fg_color, uint32_t bg_color);
 int set_font_size(int font_size);
 

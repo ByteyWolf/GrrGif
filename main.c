@@ -177,6 +177,7 @@ int main(int argc, char *argv[]) {
     test1->timePosMs = 0;
     test1->length = 600;
     test1->metadata = test1f;
+    test1->track = 0;
 
     insertTimelineObj(test1);
     scheduleRendering();
@@ -205,7 +206,7 @@ int main(int argc, char *argv[]) {
                         int rightEdge = windows[POSITION_TOPLEFT].width;
                         int bottomEdge = windows[POSITION_TOPLEFT].height;
 
-                        if (event->x >= rightEdge - 4 && event->x <= rightEdge + 4) {
+                        if (event->x >= rightEdge - 4 && event->x <= rightEdge + 4 && event->y < bottomEdge) {
                             set_cursor(CURSOR_SIZEH);
                             eligibleToDragBorder = DRAG_BORDER_X;
                         } else if (event->y >= bottomEdge - 4 && event->y <= bottomEdge + 4) {
@@ -259,6 +260,10 @@ int main(int argc, char *argv[]) {
                     if (crtButtonHeld)  hoverLogic(crtButtonHeld, event);
                     
                     break;
+                case EVENT_MOUSESCROLL:
+                    if (event->y > windows[POSITION_TOPLEFT].height) {
+                        timeline_scroll(event->scrollDelta);
+                    }
             }
         }
 

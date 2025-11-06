@@ -65,9 +65,9 @@ int insertTimelineObj(struct TimelineObject* obj) {
     obj->nextObject = (i < timelineObjects) ? sequentialAccess[i+1] : NULL;
 
     timelineObjects++;
-    if (i==0) timeline = obj;
+    if (!timeline) timeline = obj;
     if (obj->timePosMs + obj->length > timelineLengthMs) timelineLengthMs = obj->timePosMs + obj->length;
-    printf("new timeline length %u\n", timelineLengthMs);
+    printf("new timeline length %u, timeline holder %p\n", timelineLengthMs, timeline);
 
     return 0;
 }
