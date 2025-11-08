@@ -154,6 +154,20 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    uint8_t menuFile = create_menu();
+    uint8_t menuTimeline = create_menu();
+    uint8_t menuHelp = create_menu();
+
+    append_menu(menuFile, "Exit...", 1);
+
+    append_menu(menuTimeline, "Add to Timeline", 2);
+
+    append_menu(menuHelp, "About GrrGif", 3);
+
+    finalize_menu(menuFile, "File");
+    finalize_menu(menuTimeline, "Action");
+    finalize_menu(menuHelp, "Help");
+
     debugf(DEBUG_INFO, "Loading sample GIFs...");
 
     img_wolf = parse("./tests/wolf.gif");
@@ -173,14 +187,15 @@ int main(int argc, char *argv[]) {
     test1->width = 300;
     test1->height = 224;
     test1->effectsList = 0;
-    test1->fileSource = 0;
     test1->timePosMs = 0;
     test1->length = 600;
     test1->metadata = test1f;
     test1->track = 0;
+    test1->fileName = "wolf.gif";
 
     insertTimelineObj(test1);
     scheduleRendering();
+
     
     while (running) {
 

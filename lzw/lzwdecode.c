@@ -179,3 +179,4 @@ uint8_t* lzw_feed(lzw_state_t *state, const uint8_t *chunk,
     *decoded_size = state->output_pos;
     return state->output_pos > 0 ? state->output_buffer : NULL;
 }
+

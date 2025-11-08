@@ -18,6 +18,10 @@ extern uint8_t pendingRedraw;
 
 Event* evt = 0;
 
+static HMENU menuSlot[256] = {0};
+static uint8_t menuSlots = 0;
+static HMENU hMenu;
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
     switch (msg) {
@@ -139,6 +143,8 @@ int init_graphics(uint32_t width, uint32_t height, Event* event) {
         return 0;
     }
 
+    hMenu = CreateMenu();
+
     wwidth = width;
     wheight = height;
 
@@ -180,9 +186,29 @@ int init_graphics(uint32_t width, uint32_t height, Event* event) {
     return 1;
 }
 
+uint8_t create_menu() {
+    if (menuSlots > 254) return 0;
+    menuSlot[menuSlots] = CreateMenu();
+    menuSlots++;
+    return menuSlots-1;
+}
+
+void append_menu(uint8_t handle, char* name, uint32_t code) {
+    AppendMenu(menuSlot[handle], MF_STRING, code, name);
+}
+
+void append_menu_separator(uint8_t handle) {
+    AppendMenu(menuSlot[handle], MF_SEPARATOR, 0, NULL);
+}
+
+void finalize_menu(uint8_t handle, char* name) {
+    AppendMenu(hMenu, MF_POPUP, (UINT_PTR)menuSlot[handle], name);
+    SetMenu(hwnd, hMenu);
+}
+
 int poll_event() {
     MSG msg;
-    if (GetMessage(&msg, NULL, 0, 0)) {
+    if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_QUIT) {
             evt->type = EVENT_QUIT;
             evt->pending = 1;
@@ -306,10 +332,17 @@ int draw_text(const char *text, int x, int y, uint32_t color) {
     return 1;
 }
 
-int draw_text_anchor(const char *text, int x, int y, uint32_t color, uint8_t anchor) {
+int draw_text_limited(char *text, int x, int y, uint32_t color, uint8_t anchor, uint32_t max_width) {
     SIZE text_size;
     
     if (!memdc) return 0;
+    if (max_width > 0) {
+        while (1) {
+            GetTextExtentPoint32(memdc, text, strlen(text), &text_size);
+            if (text_size.cx <= max_width) break;
+            text[strlen(text)] = 0;
+        }
+    }
 
     GetTextExtentPoint32(memdc, text, strlen(text), &text_size);
     switch (anchor) {
@@ -360,6 +393,10 @@ int draw_text_bg(const char *text, int x, int y, uint32_t fg_color, uint32_t bg_
     TextOut(memdc, x, y, text, strlen(text));
 
     return 1;
+}
+
+int draw_text_anchor(char *text, int x, int y, uint32_t color, uint8_t anchor) {
+    return draw_text_limited(text, x, y, color, anchor, 0);
 }
 
 void set_cursor(int type) {

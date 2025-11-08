@@ -36,3 +36,4 @@ void lzw_init(lzw_state_t *state, uint8_t min_code_size);
 
 uint8_t* lzw_feed(lzw_state_t *state, const uint8_t *chunk, size_t chunk_size, 
                   size_t *decoded_size);
+                  

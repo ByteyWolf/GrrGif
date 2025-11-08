@@ -195,11 +195,11 @@ static int read_image_descriptor(void) {
     } else {
         memcpy(g_local_palette, g_global_palette, 256 * sizeof(uint32_t));
     }
-    if (g_current_gce.transparent_color_flag) {
-        uint32_t idx = g_current_gce.transparent_index;
-        if (idx < 256) g_local_palette[idx] = 0x00000000;
-    }
-    if (g_bg_index < 256) g_local_palette[g_bg_index] = 0x00000000;
+    //if (g_current_gce.transparent_color_flag) {
+        //uint32_t idx = g_current_gce.transparent_index;
+        //if (idx < 256) g_local_palette[idx] = 0x00000000;
+    //}
+    //if (g_bg_index < 256) g_local_palette[g_bg_index] = 0x00000000;
     return 0;
 }
 
@@ -329,7 +329,7 @@ struct imageV2* parse(const char *filename)
     gct_entries = 1 << ((packed & 0x7) + 1);
     g_bg_index = lsd[5];
     if (gct_flag) process_palette(g_fd, gct_entries, g_global_palette);
-    if (g_bg_index < 256) g_global_palette[g_bg_index] = 0x00000000;
+    //if (g_bg_index < 256) g_global_palette[g_bg_index] = 0x00000000;
     while (1) {
         bytesRead = compat_read(g_fd, &byte, 1);
         if (bytesRead < 1) {

@@ -49,11 +49,17 @@ int close_graphics();
 int clear_graphics(uint32_t color);
 int poll_event();
 //int get_rgb8888(uint32_t *destbuf, uint32_t width, uint32_t height);
-void set_window_icon(uint32_t* pixels, uint32_t w, uint32_t h);
+
+uint8_t create_menu();
+void append_menu(uint8_t handle, char* name, uint32_t code);
+void append_menu_separator(uint8_t handle);
+void finalize_menu(uint8_t handle, char* name);
+
 
 int draw_text(const char *text, int x, int y, uint32_t color);
-int draw_text_anchor(const char *text, int x, int y, uint32_t color, uint8_t anchor);
+int draw_text_anchor(char *text, int x, int y, uint32_t color, uint8_t anchor);
 int draw_text_bg(const char *text, int x, int y, uint32_t fg_color, uint32_t bg_color);
+int draw_text_limited(char *text, int x, int y, uint32_t color, uint8_t anchor, uint32_t max_width);
 int set_font_size(int font_size);
 
 void set_window_title(char *title);

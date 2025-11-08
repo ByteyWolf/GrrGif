@@ -71,11 +71,14 @@ void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
         tmprect.y = y_offset;
         tmprect.width = x_right - x_left;
         tmprect.height = TRACK_HEIGHT_PX - 2;
-        draw_rect_bound(&tmprect, &windowBounds, 0x0077AA);
+        draw_rect_bound(&tmprect, &windowBounds, 0x004477);
+        shrink_rect(&tmprect, 1);
+        draw_rect_bound(&tmprect, &windowBounds, 0x006699);
         shrink_rect(&tmprect, 1);
         draw_rect_bound(&tmprect, &windowBounds, 0x0088BB);
-        shrink_rect(&tmprect, 1);
-        draw_rect_bound(&tmprect, &windowBounds, 0x0099CC);
+        shrink_rect(&tmprect, 3);
+
+        draw_text_limited(crtObj->fileName, tmprect.x, tmprect.y, 0xFFFFFF, ANCHOR_LEFT, tmprect.width);
 
         crtObj = crtObj->nextObject;
     }

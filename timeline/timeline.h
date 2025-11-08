@@ -41,7 +41,7 @@ struct TimelineObject {
 
     uint32_t track;
 
-    char* fileSource;
+    char* fileName;
     struct LoadedFile* metadata;
     struct Effect* effectsList;
 

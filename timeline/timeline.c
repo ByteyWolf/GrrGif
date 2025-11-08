@@ -73,10 +73,12 @@ int insertTimelineObj(struct TimelineObject* obj) {
 }
 
 void timeline_heartbeat() {
-    if (!lastTimelineEpoch) lastTimelineEpoch = current_time_ms();
     if (previewPlaying && timelineLengthMs > 0) {
+        if (!lastTimelineEpoch) lastTimelineEpoch = current_time_ms();
         crtTimelineMs += (current_time_ms() - lastTimelineEpoch);
         crtTimelineMs %= timelineLengthMs;
         lastTimelineEpoch = current_time_ms();
+    } else {
+        lastTimelineEpoch = 0;
     }
 }
