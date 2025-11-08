@@ -7,10 +7,10 @@
 #include "../lock.h"
 #include "../modules.h"
 #include "../image32.h"
+#include "../debug.h"
 #include "modfunc.h"
 
-extern struct TimelineObject** sequentialAccess;
-extern struct TimelineObject* timeline;
+extern struct Timeline tracks[];
 extern uint32_t crtTimelineMs;
 
 extern uint32_t fileWidthPx;
@@ -83,54 +83,57 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
 
     
     uint32_t* usePreview = pixelPreview;
-    struct TimelineObject* crtObj = timeline;
+    for (uint8_t track = 0; track<MAX_TRACKS-1; track++) {
+        struct TimelineObject* crtObj = tracks[track].first;
+        
+        while (crtObj) {
+            //debugf(DEBUG_VERBOSE, "drawing track %u! first: %p last: %p crt: %p", track, tracks[track].first, tracks[track].last, crtObj);
+            uint32_t begin = crtObj->timePosMs;
+            uint32_t len = crtObj->length;
+            if (begin <= crtTimelineMs && begin + len >= crtTimelineMs) {
+                if (pixelPreview != usePreview) {
+                    crtObj = NULL;
+                    alloc_preview();
+                    mutex_unlock(&rendering);
+                    return;
+                }
     
-    while (crtObj) {
-        uint32_t begin = crtObj->timePosMs;
-        uint32_t len = crtObj->length;
-        if (begin <= crtTimelineMs && begin + len >= crtTimelineMs) {
-            if (pixelPreview != usePreview) {
-                crtObj = NULL;
-                alloc_preview();
-                mutex_unlock(&rendering);
-                return;
-            }
-
-            float scaleX = (float)width / fileWidthPx;
-            float scaleY = (float)height / fileHeightPx;
-            
-            uint32_t scaled_x = offset_x + (uint32_t)(crtObj->x * scaleX);
-            uint32_t scaled_y = offset_y + (uint32_t)(crtObj->y * scaleY);
-            uint32_t scaled_width = (uint32_t)(crtObj->width * scaleX);
-            uint32_t scaled_height = (uint32_t)(crtObj->height * scaleY);
-            
-            switch (crtObj->metadata->type) {
-                case FILE_ANIMATION:
-                case FILE_STILLFRAME: {
-                    uint32_t frameId = 0;
-                    if (crtObj->metadata->type == FILE_ANIMATION) {
-                        // maybe binary search here would be better?
-                        for (frameId = 0; frameId<crtObj->metadata->imagePtr->frame_count-1; frameId++) {
-                            uint32_t absoluteMs = crtObj->metadata->imagePtr->frames[frameId]->delay + begin;
-                            if (absoluteMs >= crtTimelineMs) break;
+                float scaleX = (float)width / fileWidthPx;
+                float scaleY = (float)height / fileHeightPx;
+                
+                uint32_t scaled_x = offset_x + (uint32_t)(crtObj->x * scaleX);
+                uint32_t scaled_y = offset_y + (uint32_t)(crtObj->y * scaleY);
+                uint32_t scaled_width = (uint32_t)(crtObj->width * scaleX);
+                uint32_t scaled_height = (uint32_t)(crtObj->height * scaleY);
+                
+                switch (crtObj->metadata->type) {
+                    case FILE_ANIMATION:
+                    case FILE_STILLFRAME: {
+                        uint32_t frameId = 0;
+                        if (crtObj->metadata->type == FILE_ANIMATION) {
+                            // maybe binary search here would be better?
+                            for (frameId = 0; frameId<crtObj->metadata->imagePtr->frame_count-1; frameId++) {
+                                uint32_t absoluteMs = crtObj->metadata->imagePtr->frames[frameId]->delay + begin;
+                                if (absoluteMs >= crtTimelineMs) break;
+                            }
                         }
+                        
+    
+                        struct copydata dest;
+                        dest.pixels = usePreview;
+                        dest.bufferWidth = previewWidth;
+                        dest.bufferHeight = previewHeight;
+                        dest.width = scaled_width;
+                        dest.height = scaled_height;
+                        dest.x = scaled_x;
+                        dest.y = scaled_y;
+                        draw_imageV2(crtObj->metadata->imagePtr, frameId, &dest);
+                        break;
                     }
-                    
-
-                    struct copydata dest;
-                    dest.pixels = usePreview;
-                    dest.bufferWidth = previewWidth;
-                    dest.bufferHeight = previewHeight;
-                    dest.width = scaled_width;
-                    dest.height = scaled_height;
-                    dest.x = scaled_x;
-                    dest.y = scaled_y;
-                    draw_imageV2(crtObj->metadata->imagePtr, frameId, &dest);
-                    break;
                 }
             }
+            crtObj = crtObj->nextObject;
         }
-        crtObj = crtObj->nextObject;
     }
     
 

@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <commdlg.h>
 #include "graphics.h"
 
 /* Global variables */
@@ -94,6 +95,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
         case WM_ERASEBKGND:
             return 1; /* Prevent flicker */
+
+        case WM_COMMAND:
+            evt->pending=1;
+            evt->type = EVENT_COMMAND;
+            evt->command = LOWORD(wParam);
+            return 0;
     }
 
     return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -207,6 +214,8 @@ void finalize_menu(uint8_t handle, char* name) {
 }
 
 int poll_event() {
+
+    // todo: maybe a stack of events would be nice
     MSG msg;
     if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_QUIT) {
@@ -412,4 +421,33 @@ void set_cursor(int type) {
 
 void set_window_title(char *title) {
     SetWindowTextA(hwnd, title);
+}
+
+char* choose_file() {
+    static char szFileName[MAX_PATH] = "";
+    
+    OPENFILENAME ofn;
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFilter = "GIF animations\0*.GIF\0All Files\0*.*\0\0";
+    ofn.lpstrFile = szFileName;
+    ofn.nMaxFile = sizeof(szFileName);
+    ofn.lpstrTitle = "Select a file";
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+    if (GetOpenFileName(&ofn))
+        return szFileName;
+    else
+        return NULL;
+}
+
+int messagebox(char* title, char* body, int type) {
+    int icon = 0;
+    switch (type) {
+        case MSGBOX_INFO: icon = MB_ICONINFORMATION | MB_OK; break;
+        case MSGBOX_WARNING: icon = MB_ICONWARNING | MB_OK; break;
+        case MSGBOX_ERROR: icon = MB_ICONERROR | MB_OK; break;
+        case MSGBOX_QUESTION: icon = MB_ICONQUESTION | MB_YESNO; break;
+    }
+    return MessageBox(NULL, body, title, icon);
 }

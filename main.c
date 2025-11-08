@@ -76,6 +76,11 @@ void renderUI() {
         timeline_heartbeat();
         if (!pendingRedraw) continue;
         pendingRedraw = 0;
+
+        windows[POSITION_BOTTOM].width = wwidth;
+        windows[POSITION_TOPLEFT].height = (wheight - windows[POSITION_BOTTOM].height);
+        windows[POSITION_TOPRIGHT].height = (wheight - windows[POSITION_BOTTOM].height);
+        windows[POSITION_TOPRIGHT].width = (wwidth - windows[POSITION_TOPLEFT].width);
         
         for (int winID = 0; winID < 3; winID++) {
             //debugf(DEBUG_VERBOSE, "Redrawing widget %u...", winID);
@@ -158,11 +163,11 @@ int main(int argc, char *argv[]) {
     uint8_t menuTimeline = create_menu();
     uint8_t menuHelp = create_menu();
 
-    append_menu(menuFile, "Exit...", 1);
+    append_menu(menuFile, "Exit...", COMMAND_FILE_EXIT);
 
-    append_menu(menuTimeline, "Add to Timeline", 2);
+    append_menu(menuTimeline, "Add to Timeline", COMMAND_ACTION_ADDTRACK);
 
-    append_menu(menuHelp, "About GrrGif", 3);
+    append_menu(menuHelp, "About GrrGif", COMMAND_HELP_ABOUT);
 
     finalize_menu(menuFile, "File");
     finalize_menu(menuTimeline, "Action");
@@ -190,10 +195,10 @@ int main(int argc, char *argv[]) {
     test1->timePosMs = 0;
     test1->length = 600;
     test1->metadata = test1f;
-    test1->track = 0;
     test1->fileName = "wolf.gif";
+    test1->nextObject = 0;
 
-    insertTimelineObj(test1);
+    insertTimelineObj(test1, 0);
     scheduleRendering();
 
     
@@ -204,10 +209,6 @@ int main(int argc, char *argv[]) {
             
             switch (event->type) {
                 case EVENT_RESIZE:
-                    windows[POSITION_BOTTOM].width = wwidth;
-                    windows[POSITION_TOPLEFT].height = (wheight - windows[POSITION_BOTTOM].height);
-                    windows[POSITION_TOPRIGHT].height = (wheight - windows[POSITION_BOTTOM].height);
-                    windows[POSITION_TOPRIGHT].width = (wwidth - windows[POSITION_TOPLEFT].width);
                     pendingRedraw = 1;
                     break;
                 case EVENT_MOUSEMOVE: {
@@ -279,6 +280,23 @@ int main(int argc, char *argv[]) {
                     if (event->y > windows[POSITION_TOPLEFT].height) {
                         timeline_scroll(event->scrollDelta);
                     }
+                    break;
+                case EVENT_COMMAND:
+                    switch (event->command) {
+                        case COMMAND_FILE_EXIT:
+                            running = 0;
+                            break;
+                        case COMMAND_ACTION_ADDTRACK: {
+                            char* filePath = choose_file();
+                            if (!filePath) break;
+                            debugf(DEBUG_INFO, "Adding file %s.", filePath);
+                            break;
+                        }
+                        case COMMAND_HELP_ABOUT:
+                            messagebox("About GrrGif", "Placeholder popup", MSGBOX_INFO);
+                            break;
+                    }
+                    break;
             }
         }
 

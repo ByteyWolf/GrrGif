@@ -16,7 +16,7 @@ static uint32_t x_bound_r = 2000;
 
 extern uint32_t crtTimelineMs;
 extern uint32_t timelineLengthMs;
-extern struct TimelineObject* timeline;
+extern struct Timeline tracks[];
 
 void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     Rect windowBounds;
@@ -25,15 +25,16 @@ void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     windowBounds.width = width - 14;
     windowBounds.height = height - 14;
 
-    uint32_t trackIdMin = scroll_y / TRACK_HEIGHT_PX;
-    uint32_t trackIdMax = (scroll_y + height) / TRACK_HEIGHT_PX + 1;
+    uint8_t trackIdMin = scroll_y / TRACK_HEIGHT_PX;
+    uint8_t trackIdMax = (scroll_y + height) / TRACK_HEIGHT_PX + 1;
+    if (trackIdMax >= MAX_TRACKS) trackIdMax = MAX_TRACKS - 1;
 
     Rect tmprect;
     set_font_size(8);
 
     // draw tracks
-    for (uint32_t trackId = trackIdMin; trackId < trackIdMax; trackId++) {
-        uint32_t y_offset = y + 70 - (scroll_y % TRACK_HEIGHT_PX) + TRACK_HEIGHT_PX * (trackId - trackIdMin);
+    for (uint8_t trackId = trackIdMin; trackId < trackIdMax; trackId++) {
+        uint32_t y_offset = y + 70 - (scroll_y % TRACK_HEIGHT_PX) + TRACK_HEIGHT_PX * (uint32_t)(trackId - trackIdMin);
         if (y_offset < y + 30) continue;
         if (y_offset > y + height - 30) break;
 
@@ -53,35 +54,38 @@ void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     }
 
     // draw timeline objects
-    struct TimelineObject* crtObj = timeline;
+    for (uint8_t track = 0; track<MAX_TRACKS-1; track++) {
+        struct TimelineObject* crtObj = tracks[track].first;
+        if (track < trackIdMin || track >= trackIdMax) { continue; }
     
-    while (crtObj) {
-        if (crtObj->track < trackIdMin || crtObj->track >= trackIdMax) { crtObj = crtObj->nextObject; continue; }
-        if (crtObj->timePosMs + crtObj->length < x_bound_l || crtObj->timePosMs > x_bound_r) { crtObj = crtObj->nextObject; continue; }
-
-        uint32_t y_offset = y + 71 - (scroll_y % TRACK_HEIGHT_PX) + TRACK_HEIGHT_PX * (crtObj->track - trackIdMin);
-
-        uint32_t x_left = crtObj->timePosMs < x_bound_l ? x_bound_l : crtObj->timePosMs;
-        uint32_t x_right = crtObj->timePosMs + crtObj->length > x_bound_r ? x_bound_r : crtObj->timePosMs + crtObj->length;
-
-        x_left = (x_left - x_bound_l) * (width - 40) / (x_bound_r - x_bound_l);
-        x_right = (x_right - x_bound_l) * (width - 40) / (x_bound_r - x_bound_l);
-
-        tmprect.x = x + 40 + x_left;
-        tmprect.y = y_offset;
-        tmprect.width = x_right - x_left;
-        tmprect.height = TRACK_HEIGHT_PX - 2;
-        draw_rect_bound(&tmprect, &windowBounds, 0x004477);
-        shrink_rect(&tmprect, 1);
-        draw_rect_bound(&tmprect, &windowBounds, 0x006699);
-        shrink_rect(&tmprect, 1);
-        draw_rect_bound(&tmprect, &windowBounds, 0x0088BB);
-        shrink_rect(&tmprect, 3);
-
-        draw_text_limited(crtObj->fileName, tmprect.x, tmprect.y, 0xFFFFFF, ANCHOR_LEFT, tmprect.width);
-
-        crtObj = crtObj->nextObject;
+        while (crtObj) {
+            if (crtObj->timePosMs + crtObj->length < x_bound_l || crtObj->timePosMs > x_bound_r) { crtObj = crtObj->nextObject; continue; }
+    
+            uint32_t y_offset = y + 71 - (scroll_y % TRACK_HEIGHT_PX) + TRACK_HEIGHT_PX * (track - trackIdMin);
+    
+            uint32_t x_left = crtObj->timePosMs < x_bound_l ? x_bound_l : crtObj->timePosMs;
+            uint32_t x_right = crtObj->timePosMs + crtObj->length > x_bound_r ? x_bound_r : crtObj->timePosMs + crtObj->length;
+    
+            x_left = (x_left - x_bound_l) * (width - 40) / (x_bound_r - x_bound_l);
+            x_right = (x_right - x_bound_l) * (width - 40) / (x_bound_r - x_bound_l);
+    
+            tmprect.x = x + 40 + x_left;
+            tmprect.y = y_offset;
+            tmprect.width = x_right - x_left;
+            tmprect.height = TRACK_HEIGHT_PX - 2;
+            draw_rect_bound(&tmprect, &windowBounds, 0x004477);
+            shrink_rect(&tmprect, 1);
+            draw_rect_bound(&tmprect, &windowBounds, 0x006699);
+            shrink_rect(&tmprect, 1);
+            draw_rect_bound(&tmprect, &windowBounds, 0x0088BB);
+            shrink_rect(&tmprect, 3);
+    
+            draw_text_limited(crtObj->fileName, tmprect.x, tmprect.y, 0xFFFFFF, ANCHOR_LEFT, tmprect.width);
+    
+            crtObj = crtObj->nextObject;
+        }
     }
+    
 
     // draw playhead
     if (crtTimelineMs >= x_bound_l && crtTimelineMs <= x_bound_r) {

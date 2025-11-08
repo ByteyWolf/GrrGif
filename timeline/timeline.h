@@ -9,6 +9,8 @@
 #define FONT_ITALIC 2
 #define FONT_UNDERLINE 4
 
+#define MAX_TRACKS 9
+
 #include <stdint.h>
 
 struct LoadedFile {
@@ -39,8 +41,6 @@ struct TimelineObject {
     uint32_t timePosMs;
     uint32_t length;
 
-    uint32_t track;
-
     char* fileName;
     struct LoadedFile* metadata;
     struct Effect* effectsList;
@@ -48,6 +48,12 @@ struct TimelineObject {
     struct TimelineObject* nextObject;
 };
 
-int insertTimelineObj(struct TimelineObject* obj);
+struct Timeline {
+    struct TimelineObject* first;
+    struct TimelineObject* last;
+    uint32_t length;
+};
+
+int insertTimelineObj(struct TimelineObject* obj, uint8_t track);
 void timeline_heartbeat();
 uint64_t current_time_ms();

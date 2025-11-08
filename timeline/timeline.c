@@ -4,12 +4,13 @@
 #include <time.h>
 #include <stdio.h>
 #include "../image32.h"
+#include "../debug.h"
 #include "timeline.h"
+#include "../graphics/graphics.h"
 
 uint32_t timelineObjects;
 uint32_t timelineMaxMs;
-struct TimelineObject** sequentialAccess = 0;
-struct TimelineObject* timeline = 0;
+struct Timeline tracks[MAX_TRACKS] = {0};
 
 uint32_t crtTimelineMs = 0;
 uint32_t timelineLengthMs = 0;
@@ -29,7 +30,7 @@ uint64_t current_time_ms() {
     GetSystemTimeAsFileTime(&ft);
     // Convert FILETIME (100-ns intervals since 1601) to milliseconds since epoch
     uint64_t t = (((uint64_t)ft.dwHighDateTime << 32) | ft.dwLowDateTime) / 10000;
-    t -= 11644473600000ULL; // Windows FILETIME epoch → Unix epoch
+    t -= 11644473600000ULL; // Windows FILETIME epoch to Unix epoch
     return t;
 }
 
@@ -44,30 +45,44 @@ uint64_t current_time_ms() {
 #endif
 
 
-int insertTimelineObj(struct TimelineObject* obj) {
+// insert new object at any free spot where the cursor is hovering
+int insertTimelineObj(struct TimelineObject* obj, uint8_t track) {
+    if (track > MAX_TRACKS - 1) return 1;
     if (!obj) return 1;
-
-    struct TimelineObject** newSeq = realloc(sequentialAccess, (timelineObjects+1) * sizeof(*sequentialAccess));
-    if (!newSeq) return 1;
-    sequentialAccess = newSeq;
-
-    uint32_t i = 0;
-    while (i < timelineObjects && sequentialAccess[i]->timePosMs <= obj->timePosMs) i++;
-
-    for (uint32_t j = timelineObjects; j > i; j--) {
-        sequentialAccess[j] = sequentialAccess[j-1];
+    
+    uint32_t insert_timestamp = crtTimelineMs;
+    struct TimelineObject* insertAfter = 0;
+    struct TimelineObject* crtCandidate = tracks[track].first;
+    while (crtCandidate) {
+        if (crtCandidate->timePosMs >= crtTimelineMs) {
+            crtCandidate->timePosMs += obj->length;
+            continue;
+        };
+        insertAfter = crtCandidate;
+        crtCandidate = crtCandidate->nextObject;
     }
-
-    sequentialAccess[i] = obj;
-
-    if (i > 0)
-        sequentialAccess[i-1]->nextObject = obj;
-    obj->nextObject = (i < timelineObjects) ? sequentialAccess[i+1] : NULL;
-
-    timelineObjects++;
-    if (!timeline) timeline = obj;
+    if (!crtCandidate) {
+        insert_timestamp = tracks[track].length;
+    }
+    if (insertAfter) {
+        insertAfter->nextObject = obj;
+        if (insertAfter == tracks[track].last) tracks[track].last = obj;
+    } else {
+        // Try to append last if it exists
+        if (tracks[track].last) {
+            tracks[track].last->nextObject = obj;
+        }
+        tracks[track].last = obj;
+        if (!tracks[track].first) {
+            tracks[track].first = tracks[track].last;
+        }
+        debugf(DEBUG_VERBOSE, "Appended to track %u! first: %p last: %p", track, tracks[track].first, tracks[track].last);
+    }
+    obj->timePosMs = insert_timestamp;
+    
     if (obj->timePosMs + obj->length > timelineLengthMs) timelineLengthMs = obj->timePosMs + obj->length;
-    printf("new timeline length %u, timeline holder %p\n", timelineLengthMs, timeline);
+    if (obj->timePosMs + obj->length > tracks[track].length) tracks[track].length = obj->timePosMs + obj->length;
+
 
     return 0;
 }

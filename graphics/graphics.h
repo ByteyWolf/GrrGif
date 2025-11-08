@@ -16,6 +16,7 @@ typedef struct Event {
     int width;
     int height;
     int scrollDelta;
+    uint32_t command;
 } Event;
 
 #define EVENT_NONE 0
@@ -27,6 +28,7 @@ typedef struct Event {
 #define EVENT_QUIT 6
 #define EVENT_RESIZE 7
 #define EVENT_MOUSESCROLL 8
+#define EVENT_COMMAND 9
 
 #define FONT_SIZE_NORMAL 8
 #define FONT_SIZE_LARGE 12
@@ -39,6 +41,15 @@ typedef struct Event {
 #define CURSOR_BUSY     1
 #define CURSOR_SIZEH    2
 #define CURSOR_SIZEV    3
+
+#define COMMAND_FILE_EXIT 1
+#define COMMAND_ACTION_ADDTRACK 2
+#define COMMAND_HELP_ABOUT 3
+
+#define MSGBOX_INFO 0
+#define MSGBOX_WARNING 1
+#define MSGBOX_ERROR 2
+#define MSGBOX_QUESTION 3
 
 
 int init_graphics(uint32_t width, uint32_t height, Event *event);
@@ -66,3 +77,6 @@ void set_window_title(char *title);
 void set_cursor(int type);
 
 void shrink_rect(Rect* rect, int pixels);
+
+char* choose_file();
+int messagebox(char* title, char* body, int type);
