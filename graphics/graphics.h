@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GRAPHICS_H
+#define GRAPHICS_H
 
 #include <stdint.h>
 
@@ -80,3 +81,5 @@ void shrink_rect(Rect* rect, int pixels);
 
 char* choose_file();
 int messagebox(char* title, char* body, int type);
+
+#endif

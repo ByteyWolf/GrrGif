@@ -56,15 +56,20 @@ int insertTimelineObj(struct TimelineObject* obj, uint8_t track) {
     while (crtCandidate) {
         if (crtCandidate->timePosMs >= crtTimelineMs) {
             crtCandidate->timePosMs += obj->length;
+            uint32_t candR = crtCandidate->timePosMs + crtCandidate->length;
+            if (candR > timelineLengthMs) timelineLengthMs = candR;
+            if (candR > tracks[track].length) tracks[track].length = candR;
+            crtCandidate = crtCandidate->nextObject;
             continue;
         };
         insertAfter = crtCandidate;
         crtCandidate = crtCandidate->nextObject;
     }
-    if (!crtCandidate) {
-        insert_timestamp = tracks[track].length;
-    }
+    //if (!crtCandidate) {
+    //    insert_timestamp = tracks[track].length;
+    //}
     if (insertAfter) {
+        obj->nextObject = insertAfter->nextObject;
         insertAfter->nextObject = obj;
         if (insertAfter == tracks[track].last) tracks[track].last = obj;
     } else {
@@ -89,11 +94,30 @@ int insertTimelineObj(struct TimelineObject* obj, uint8_t track) {
 
 void timeline_heartbeat() {
     if (previewPlaying && timelineLengthMs > 0) {
-        if (!lastTimelineEpoch) lastTimelineEpoch = current_time_ms();
-        crtTimelineMs += (current_time_ms() - lastTimelineEpoch);
+        uint64_t now = current_time_ms();
+        if (!lastTimelineEpoch) lastTimelineEpoch = now;
+        crtTimelineMs += (now - lastTimelineEpoch);
         crtTimelineMs %= timelineLengthMs;
-        lastTimelineEpoch = current_time_ms();
+        lastTimelineEpoch = now;
     } else {
         lastTimelineEpoch = 0;
     }
+}
+
+// Same as insertTimelineObj but tries to automatically pick a track.
+void insertTimelineObjFree(struct TimelineObject* obj) {
+    for (uint8_t track = 0; track<MAX_TRACKS; track++) {
+        struct TimelineObject* crtTrack = tracks[track].first;
+        while (crtTrack) {
+            uint32_t trackL = crtTrack->timePosMs;
+            uint32_t trackR = trackL + crtTrack->length;
+            if (trackL < crtTimelineMs && trackR > crtTimelineMs) break;
+            crtTrack = crtTrack->nextObject;
+        }
+        if (!crtTrack) {
+            insertTimelineObj(obj, track);
+            return;
+        }
+    }
+    insertTimelineObj(obj, 0);
 }

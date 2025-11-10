@@ -55,5 +55,6 @@ struct Timeline {
 };
 
 int insertTimelineObj(struct TimelineObject* obj, uint8_t track);
+void insertTimelineObjFree(struct TimelineObject* obj);
 void timeline_heartbeat();
 uint64_t current_time_ms();

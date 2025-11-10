@@ -349,7 +349,7 @@ int draw_text_limited(char *text, int x, int y, uint32_t color, uint8_t anchor, 
         while (1) {
             GetTextExtentPoint32(memdc, text, strlen(text), &text_size);
             if (text_size.cx <= max_width) break;
-            text[strlen(text)] = 0;
+            text[strlen(text)-1] = 0;
         }
     }
 

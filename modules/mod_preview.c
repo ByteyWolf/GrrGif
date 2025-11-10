@@ -27,6 +27,17 @@ Mutex rendering;
 extern struct ModuleWindow windows[3];
 extern const uint32_t COLOR_GRAY;
 
+struct TimelineObject* draggingObj = 0;
+struct TimelineObject* objOnThisFrame[64];
+uint8_t objOnThisFrameCount = 0;
+uint8_t lastPlayStatus = 0;
+extern uint8_t previewPlaying;
+
+uint32_t offset_x = 0;
+uint32_t offset_y = 0;
+uint32_t canvas_width = 0;
+uint32_t canvas_height = 0;
+
 int alloc_preview() {
     if (pixelPreview) free(pixelPreview);
     previewWidth = windows[1].width - 40;
@@ -56,10 +67,8 @@ void fit_aspect_ratio(uint32_t src_width, uint32_t src_height,
 
 void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     //mutex_lock(&rendering);
-    uint32_t canvas_width = width;
-    uint32_t canvas_height = height;
-    uint32_t offset_x = 0;
-    uint32_t offset_y = 0;
+    canvas_width = width;
+    canvas_height = height;
     
     fit_aspect_ratio(fileWidthPx, fileHeightPx, &offset_x, &offset_y, &width, &height);
     
@@ -83,6 +92,10 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
 
     
     uint32_t* usePreview = pixelPreview;
+    uint8_t playbackStopped = (previewPlaying != lastPlayStatus) && previewPlaying == 0;
+    lastPlayStatus = previewPlaying;
+    objOnThisFrameCount = 0;
+    
     for (uint8_t track = 0; track<MAX_TRACKS-1; track++) {
         struct TimelineObject* crtObj = tracks[track].first;
         
@@ -105,16 +118,24 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
                 uint32_t scaled_y = offset_y + (uint32_t)(crtObj->y * scaleY);
                 uint32_t scaled_width = (uint32_t)(crtObj->width * scaleX);
                 uint32_t scaled_height = (uint32_t)(crtObj->height * scaleY);
+
+                if (playbackStopped && objOnThisFrameCount < 63) {
+                    objOnThisFrame[objOnThisFrameCount] = crtObj;
+                    objOnThisFrameCount++;
+                }
                 
                 switch (crtObj->metadata->type) {
                     case FILE_ANIMATION:
                     case FILE_STILLFRAME: {
                         uint32_t frameId = 0;
                         if (crtObj->metadata->type == FILE_ANIMATION) {
+                            // todo: change the line below to add non-loop
+                            uint32_t relativeCrtMs = (crtTimelineMs - begin) % len;
+                            struct imageV2* imagePtr = crtObj->metadata->imagePtr;
                             // maybe binary search here would be better?
-                            for (frameId = 0; frameId<crtObj->metadata->imagePtr->frame_count-1; frameId++) {
-                                uint32_t absoluteMs = crtObj->metadata->imagePtr->frames[frameId]->delay + begin;
-                                if (absoluteMs >= crtTimelineMs) break;
+                            for (frameId = 0; frameId<imagePtr->frame_count-1; frameId++) {
+                                uint32_t absoluteMs = imagePtr->frames[frameId]->delay;
+                                if (absoluteMs >= relativeCrtMs) break;
                             }
                         }
                         
@@ -127,6 +148,14 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
                         dest.height = scaled_height;
                         dest.x = scaled_x;
                         dest.y = scaled_y;
+                        if (crtObj == draggingObj) {
+                            Rect around;
+                            around.x = scaled_x - 2;
+                            around.y = scaled_y - 2;
+                            around.width = scaled_width + 4;
+                            around.height = scaled_height + 4;
+                            draw_rect(&around, 0x0);
+                        }
                         draw_imageV2(crtObj->metadata->imagePtr, frameId, &dest);
                         break;
                     }
@@ -136,7 +165,33 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
         }
     }
     
-
     blit_rgb8888(usePreview, previewWidth, previewHeight, x + 20, y + 30);
     //mutex_unlock(&rendering);
+}
+
+void preview_handle_event(Event* event) {
+    if (!event || !event->pending) return;
+    switch (event->type) {
+        case EVENT_MOUSEBUTTONDOWN: {
+            draggingObj = 0;
+            if (event->x < offset_x ||
+                event->x > offset_x+canvas_width ||
+                event->y < offset_y ||
+                event->y > offset_y + canvas_height) break;
+            uint32_t mouseXCanvas = offset_x + event->x;
+            uint32_t mouseYCanvas = offset_y + event->y;
+            for (uint8_t objId = 0; objId<objOnThisFrameCount; objId++) {
+                struct TimelineObject* obj = objOnThisFrame[objId];
+                if (mouseXCanvas > obj->x &&
+                    mouseXCanvas < obj->x + obj->width &&
+                    mouseYCanvas > obj->y &&
+                    mouseYCanvas < obj->y + obj->height) {
+                    draggingObj = obj;
+                }
+            }
+            break;
+        }
+        case EVENT_MOUSEBUTTONUP:
+            draggingObj = 0;
+    }
 }

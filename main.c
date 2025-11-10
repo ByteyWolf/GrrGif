@@ -21,9 +21,6 @@
 #define DRAG_BORDER_X 1
 #define DRAG_BORDER_Y 2
 
-struct imageV2* img_wolf = NULL;
-struct imageV2* img_banana = NULL;
-
 const uint32_t COLOR_WHITE = 0xFFFFFF;
 const uint32_t COLOR_GRAY = 0x151515;
 
@@ -116,7 +113,6 @@ void renderUI() {
             set_font_size(FONT_SIZE_LARGE);
             draw_text_bg(current_window.title, window_rect.x + 10, window_rect.y - 4, COLOR_WHITE, COLOR_GRAY);
         }
-    
         preview_draw(wwidth - windows[POSITION_TOPRIGHT].width, 0, windows[POSITION_TOPRIGHT].width, windows[POSITION_TOPRIGHT].height);
         timeline_draw(0, wheight - windows[POSITION_BOTTOM].height, windows[POSITION_BOTTOM].width, windows[POSITION_BOTTOM].height);
     
@@ -146,6 +142,29 @@ void scheduleRendering() {
 }
 #endif
 
+void insertTrack(char* filename) {
+    struct imageV2* imgLoaded = parse(filename);
+    if (!imgLoaded) { messagebox("GrrGif", "Failed to load file!", MSGBOX_ERROR); return;}
+    
+    struct LoadedFile* metadata = malloc(sizeof(struct LoadedFile));
+    metadata->imagePtr = imgLoaded;
+    metadata->type = FILE_ANIMATION;
+
+    struct TimelineObject* test1 = malloc(sizeof(struct TimelineObject));
+    test1->x = 30;
+    test1->y = 0;
+    test1->width = imgLoaded->width;
+    test1->height = imgLoaded->height;
+    test1->effectsList = 0;
+    test1->timePosMs = 0;
+    test1->length = imgLoaded->frames[imgLoaded->frame_count-1]->delay;
+    test1->metadata = metadata;
+    test1->fileName = filename;
+    test1->nextObject = 0;
+
+    insertTimelineObjFree(test1);
+}
+
 int main(int argc, char *argv[]) {
     printf("GrrGif v0.0\n(c) Copyright 2025 Bytey Wolf. All rights reserved.\n\n");
 
@@ -173,32 +192,6 @@ int main(int argc, char *argv[]) {
     finalize_menu(menuTimeline, "Action");
     finalize_menu(menuHelp, "Help");
 
-    debugf(DEBUG_INFO, "Loading sample GIFs...");
-
-    img_wolf = parse("./tests/wolf.gif");
-    if (!img_wolf) printf("Failed to parse wolf.gif");
-    img_banana = parse("./tests/dancing-banana-banana.gif");
-    if (!img_banana) printf("Failed to parse banana.gif");
-
-    debugf(DEBUG_VERBOSE, "Adding sample GIF to timeline.");
-
-    struct LoadedFile* test1f = malloc(sizeof(struct LoadedFile));
-    test1f->imagePtr = img_wolf;
-    test1f->type = FILE_ANIMATION;
-
-    struct TimelineObject* test1 = malloc(sizeof(struct TimelineObject));
-    test1->x = 30;
-    test1->y = 0;
-    test1->width = 300;
-    test1->height = 224;
-    test1->effectsList = 0;
-    test1->timePosMs = 0;
-    test1->length = 600;
-    test1->metadata = test1f;
-    test1->fileName = "wolf.gif";
-    test1->nextObject = 0;
-
-    insertTimelineObj(test1, 0);
     scheduleRendering();
 
     
@@ -289,7 +282,8 @@ int main(int argc, char *argv[]) {
                         case COMMAND_ACTION_ADDTRACK: {
                             char* filePath = choose_file();
                             if (!filePath) break;
-                            debugf(DEBUG_INFO, "Adding file %s.", filePath);
+                            insertTrack(filePath);
+                            pendingRedraw = 1;
                             break;
                         }
                         case COMMAND_HELP_ABOUT:
@@ -298,6 +292,8 @@ int main(int argc, char *argv[]) {
                     }
                     break;
             }
+            preview_handle_event(event);
+            //timeline_handle_event(event);
         }
 
         //clear_graphics(0x000000);
