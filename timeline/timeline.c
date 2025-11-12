@@ -21,6 +21,7 @@ uint32_t fileHeightPx = 600;
 uint64_t lastTimelineEpoch = 0;
 
 extern uint8_t pendingRedraw;
+extern uint8_t refreshFrameCache;
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -87,6 +88,7 @@ int insertTimelineObj(struct TimelineObject* obj, uint8_t track) {
     
     if (obj->timePosMs + obj->length > timelineLengthMs) timelineLengthMs = obj->timePosMs + obj->length;
     if (obj->timePosMs + obj->length > tracks[track].length) tracks[track].length = obj->timePosMs + obj->length;
+    refreshFrameCache = 1;
 
 
     return 0;
@@ -99,6 +101,7 @@ void timeline_heartbeat() {
         crtTimelineMs += (now - lastTimelineEpoch);
         crtTimelineMs %= timelineLengthMs;
         lastTimelineEpoch = now;
+        refreshFrameCache = 1;
     } else {
         lastTimelineEpoch = 0;
     }

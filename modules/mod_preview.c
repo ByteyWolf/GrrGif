@@ -8,7 +8,6 @@
 #include "../modules.h"
 #include "../image32.h"
 #include "../debug.h"
-#include "modfunc.h"
 
 extern struct Timeline tracks[];
 extern uint32_t crtTimelineMs;
@@ -30,13 +29,17 @@ extern const uint32_t COLOR_GRAY;
 struct TimelineObject* draggingObj = 0;
 struct TimelineObject* objOnThisFrame[64];
 uint8_t objOnThisFrameCount = 0;
-uint8_t lastPlayStatus = 0;
 extern uint8_t previewPlaying;
 
-uint32_t offset_x = 0;
-uint32_t offset_y = 0;
+uint32_t canvas_x = 0;
+uint32_t canvas_y = 0;
 uint32_t canvas_width = 0;
 uint32_t canvas_height = 0;
+
+uint32_t lastMouseDragX = 0;
+uint32_t lastMouseDragY = 0;
+
+uint8_t refreshFrameCache = 0;
 
 int alloc_preview() {
     if (pixelPreview) free(pixelPreview);
@@ -69,6 +72,8 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     //mutex_lock(&rendering);
     canvas_width = width;
     canvas_height = height;
+    uint32_t offset_x = 0;
+    uint32_t offset_y = 0;
     
     fit_aspect_ratio(fileWidthPx, fileHeightPx, &offset_x, &offset_y, &width, &height);
     
@@ -85,16 +90,14 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
             uint32_t canvas_x = offset_x + px;
             uint32_t canvas_y = offset_y + py;
             if (canvas_x < previewWidth && canvas_y < previewHeight) {
-                pixelPreview[canvas_y * previewWidth + canvas_x] = 0xFFFFFFFF;
+                pixelPreview[canvas_y * previewWidth + canvas_x] = (canvas_x+(canvas_y*3))%2 ? 0xFFFFFF : 0x999999;
             }
         }
     }
 
     
     uint32_t* usePreview = pixelPreview;
-    uint8_t playbackStopped = (previewPlaying != lastPlayStatus) && previewPlaying == 0;
-    lastPlayStatus = previewPlaying;
-    objOnThisFrameCount = 0;
+    if (refreshFrameCache) objOnThisFrameCount = 0;
     
     for (uint8_t track = 0; track<MAX_TRACKS-1; track++) {
         struct TimelineObject* crtObj = tracks[track].first;
@@ -118,8 +121,8 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
                 uint32_t scaled_y = offset_y + (uint32_t)(crtObj->y * scaleY);
                 uint32_t scaled_width = (uint32_t)(crtObj->width * scaleX);
                 uint32_t scaled_height = (uint32_t)(crtObj->height * scaleY);
-
-                if (playbackStopped && objOnThisFrameCount < 63) {
+                
+                if (refreshFrameCache && objOnThisFrameCount < 63) {
                     objOnThisFrame[objOnThisFrameCount] = crtObj;
                     objOnThisFrameCount++;
                 }
@@ -164,34 +167,74 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
             crtObj = crtObj->nextObject;
         }
     }
-    
+    //printf("waow %p %ux%u %u %u\n", usePreview, previewWidth, previewHeight, x+20, y+30);
+    canvas_x = x+20+offset_x;
+    canvas_y = y+30+offset_y;
     blit_rgb8888(usePreview, previewWidth, previewHeight, x + 20, y + 30);
+    refreshFrameCache = 0;
+    //Sleep(1000);
     //mutex_unlock(&rendering);
 }
 
+int convertMouseXtoCanvasX(int mouseX) {
+    float scaleratio = (float)fileWidthPx / (float)canvas_width;
+    return scaleratio * mouseX;
+}
+
+int convertMouseYtoCanvasY(int mouseY) {
+    float scaleratio = (float)fileHeightPx / (float)canvas_height;
+    return scaleratio * mouseY;
+}
+
+struct TimelineObject* getHoveringObj(Event* event) {
+    if (event->x < canvas_x ||
+        event->x > canvas_x+canvas_width ||
+        event->y < canvas_y ||
+        event->y > canvas_y + canvas_height) return 0;
+    uint32_t mouseXCanvas = convertMouseXtoCanvasX(event->x - canvas_x);
+    uint32_t mouseYCanvas = convertMouseYtoCanvasY(event->y - canvas_y);
+    lastMouseDragX = mouseXCanvas;
+    lastMouseDragY = mouseYCanvas;
+    for (uint8_t objId = 0; objId<objOnThisFrameCount; objId++) {
+        struct TimelineObject* obj = objOnThisFrame[objId];
+        if (mouseXCanvas > obj->x &&
+            mouseXCanvas < obj->x + obj->width &&
+            mouseYCanvas > obj->y &&
+            mouseYCanvas < obj->y + obj->height) {
+            
+            return obj;
+        }
+    }
+    return 0;
+}
+
 void preview_handle_event(Event* event) {
-    if (!event || !event->pending) return;
+    if (!event) return;
     switch (event->type) {
         case EVENT_MOUSEBUTTONDOWN: {
             draggingObj = 0;
-            if (event->x < offset_x ||
-                event->x > offset_x+canvas_width ||
-                event->y < offset_y ||
-                event->y > offset_y + canvas_height) break;
-            uint32_t mouseXCanvas = offset_x + event->x;
-            uint32_t mouseYCanvas = offset_y + event->y;
-            for (uint8_t objId = 0; objId<objOnThisFrameCount; objId++) {
-                struct TimelineObject* obj = objOnThisFrame[objId];
-                if (mouseXCanvas > obj->x &&
-                    mouseXCanvas < obj->x + obj->width &&
-                    mouseYCanvas > obj->y &&
-                    mouseYCanvas < obj->y + obj->height) {
-                    draggingObj = obj;
-                }
-            }
+            struct TimelineObject* hoveringObj = getHoveringObj(event);
+            draggingObj = hoveringObj; // no null check is intentional!
             break;
         }
+        case EVENT_MOUSEMOVE:
+            if (draggingObj) {
+                set_cursor(CURSOR_MOVE);
+                int mouseX = convertMouseXtoCanvasX(event->x - canvas_x);
+                int mouseY = convertMouseYtoCanvasY(event->y - canvas_y);
+                int deltaX = mouseX - lastMouseDragX;
+                int deltaY = mouseY - lastMouseDragY;
+                draggingObj->x += deltaX;
+                draggingObj->y += deltaY;
+                lastMouseDragX = mouseX;
+                lastMouseDragY = mouseY;
+                break;
+            }
+            if (getHoveringObj(event)) { set_cursor(CURSOR_MOVE); } else {set_cursor(CURSOR_NORMAL);}
+            break;
+            
         case EVENT_MOUSEBUTTONUP:
             draggingObj = 0;
+            break;
     }
 }

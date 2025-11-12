@@ -415,6 +415,7 @@ void set_cursor(int type) {
         case CURSOR_BUSY:   cursor = LoadCursor(NULL, IDC_WAIT); break;
         case CURSOR_SIZEH:  cursor = LoadCursor(NULL, IDC_SIZEWE); break;
         case CURSOR_SIZEV:  cursor = LoadCursor(NULL, IDC_SIZENS); break;
+        case CURSOR_MOVE:   cursor = LoadCursor(NULL, IDC_SIZEALL); break;
     }
     if (cursor) SetCursor(cursor);
 }
