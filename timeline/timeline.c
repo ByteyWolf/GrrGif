@@ -90,6 +90,8 @@ int insertTimelineObj(struct TimelineObject* obj, uint8_t track) {
     if (obj->timePosMs + obj->length > tracks[track].length) tracks[track].length = obj->timePosMs + obj->length;
     refreshFrameCache = 1;
 
+    obj->track = track;
+
 
     return 0;
 }

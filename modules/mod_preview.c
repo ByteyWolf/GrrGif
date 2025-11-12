@@ -26,7 +26,7 @@ Mutex rendering;
 extern struct ModuleWindow windows[3];
 extern const uint32_t COLOR_GRAY;
 
-struct TimelineObject* draggingObj = 0;
+struct TimelineObject* selectedObj = 0;
 struct TimelineObject* objOnThisFrame[64];
 uint8_t objOnThisFrameCount = 0;
 extern uint8_t previewPlaying;
@@ -38,6 +38,8 @@ uint32_t canvas_height = 0;
 
 uint32_t lastMouseDragX = 0;
 uint32_t lastMouseDragY = 0;
+
+uint8_t mouseDown = 0;
 
 uint8_t refreshFrameCache = 0;
 
@@ -65,6 +67,33 @@ void fit_aspect_ratio(uint32_t src_width, uint32_t src_height,
         uint32_t new_height = (uint32_t)((*width) / src_aspect);
         *y += (*height - new_height) / 2;
         *height = new_height;
+    }
+}
+
+void draw_canvas_rect(int x, int y, uint32_t width, uint32_t height, uint32_t color) {
+    if (!pixelPreview) return;
+    for (int crtx = x; crtx<x+width; crtx++) {
+        for (int crty = y; crty<y+height; crty++) {
+            if ((crty*previewWidth+crtx)>=previewWidth*canvas_height-1) break;
+            if (color > 0xFFFFFF) {
+                uint16_t alpha = (color >> 24) & 0xFF;
+                uint16_t rD = (color >> 16) & 0xFF;
+                uint16_t gD = (color >> 8) & 0xFF;
+                uint16_t bD = color & 0xFF;
+
+                uint32_t source = pixelPreview[crty*previewWidth+crtx];
+                uint8_t rS = (source >> 16) & 0xFF;
+                uint8_t gS = (source >> 8) & 0xFF;
+                uint8_t bS = source & 0xFF;
+
+                rD = (alpha * rD + (255 - alpha) * rS) / 255;
+                gD = (alpha * gD + (255 - alpha) * gS) / 255;
+                bD = (alpha * bD + (255 - alpha) * bS) / 255;
+
+                color = (rD << 16) | (gD << 8) | bD;
+            }
+            pixelPreview[crty*previewWidth+crtx]=color;
+        }
     }
 }
 
@@ -151,13 +180,8 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
                         dest.height = scaled_height;
                         dest.x = scaled_x;
                         dest.y = scaled_y;
-                        if (crtObj == draggingObj) {
-                            Rect around;
-                            around.x = scaled_x - 2;
-                            around.y = scaled_y - 2;
-                            around.width = scaled_width + 4;
-                            around.height = scaled_height + 4;
-                            draw_rect(&around, 0x0);
+                        if (crtObj == selectedObj) {
+                            draw_canvas_rect(scaled_x - 1, scaled_y - 1, scaled_width + 4, scaled_height + 4, 0x99000000);
                         }
                         draw_imageV2(crtObj->metadata->imagePtr, frameId, &dest);
                         break;
@@ -195,6 +219,10 @@ struct TimelineObject* getHoveringObj(Event* event) {
     uint32_t mouseYCanvas = convertMouseYtoCanvasY(event->y - canvas_y);
     lastMouseDragX = mouseXCanvas;
     lastMouseDragY = mouseYCanvas;
+
+    struct TimelineObject* bestObj = 0;
+    uint8_t bestTrack = 0;
+    
     for (uint8_t objId = 0; objId<objOnThisFrameCount; objId++) {
         struct TimelineObject* obj = objOnThisFrame[objId];
         if (mouseXCanvas > obj->x &&
@@ -202,30 +230,34 @@ struct TimelineObject* getHoveringObj(Event* event) {
             mouseYCanvas > obj->y &&
             mouseYCanvas < obj->y + obj->height) {
             
-            return obj;
+            if (obj->track >= bestTrack) {
+                bestObj = obj;
+                bestTrack = obj->track;
+            }
         }
     }
-    return 0;
+    return bestObj;
 }
 
 void preview_handle_event(Event* event) {
     if (!event) return;
     switch (event->type) {
         case EVENT_MOUSEBUTTONDOWN: {
-            draggingObj = 0;
+            selectedObj = 0;
             struct TimelineObject* hoveringObj = getHoveringObj(event);
-            draggingObj = hoveringObj; // no null check is intentional!
+            selectedObj = hoveringObj; // no null check is intentional!
+            mouseDown = 1;
             break;
         }
         case EVENT_MOUSEMOVE:
-            if (draggingObj) {
+            if (selectedObj && mouseDown) {
                 set_cursor(CURSOR_MOVE);
                 int mouseX = convertMouseXtoCanvasX(event->x - canvas_x);
                 int mouseY = convertMouseYtoCanvasY(event->y - canvas_y);
                 int deltaX = mouseX - lastMouseDragX;
                 int deltaY = mouseY - lastMouseDragY;
-                draggingObj->x += deltaX;
-                draggingObj->y += deltaY;
+                selectedObj->x += deltaX;
+                selectedObj->y += deltaY;
                 lastMouseDragX = mouseX;
                 lastMouseDragY = mouseY;
                 break;
@@ -234,7 +266,9 @@ void preview_handle_event(Event* event) {
             break;
             
         case EVENT_MOUSEBUTTONUP:
-            draggingObj = 0;
+            mouseDown = 0;
+            //selectedObj = 0;
+            //didDrag = 0;
             break;
     }
 }
