@@ -292,7 +292,7 @@ int main(int argc, char *argv[]) {
                     break;
             }
             preview_handle_event(event);
-            //timeline_handle_event(event);
+            timeline_handle_event(event);
         }
 
         //clear_graphics(0x000000);

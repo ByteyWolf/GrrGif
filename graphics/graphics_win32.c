@@ -341,10 +341,13 @@ int draw_text(const char *text, int x, int y, uint32_t color) {
     return 1;
 }
 
-int draw_text_limited(char *text, int x, int y, uint32_t color, uint8_t anchor, uint32_t max_width) {
+int draw_text_limited(char *textraw, int x, int y, uint32_t color, uint8_t anchor, uint32_t max_width) {
     SIZE text_size;
     
     if (!memdc) return 0;
+    char *text = malloc(strlen(textraw) + 1);
+    memcpy(text, textraw, strlen(textraw) + 1);
+    
     if (max_width > 0) {
         while (1) {
             GetTextExtentPoint32(memdc, text, strlen(text), &text_size);

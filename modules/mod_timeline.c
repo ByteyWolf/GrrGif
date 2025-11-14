@@ -2,6 +2,7 @@
 #include "../graphics/graphics.h"
 #include "../graphics/gui_utility.h"
 #include "../timeline/timeline.h"
+#include "../debug.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -16,6 +17,17 @@ static uint32_t x_bound_r = 2000;
 extern uint32_t crtTimelineMs;
 extern uint32_t timelineLengthMs;
 extern struct Timeline tracks[];
+
+extern struct ModuleWindow windows[3];
+
+static struct TimelineObject* selectedObj = 0;
+
+uint32_t doInvert(uint32_t color, uint8_t invert) {
+    if (invert) {
+        return 0xFFFFFF - color;
+    }
+    return color;
+}
 
 void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     Rect windowBounds;
@@ -41,6 +53,9 @@ void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
         tmprect.y = y_offset;
         tmprect.width = width - 40;
         tmprect.height = TRACK_HEIGHT_PX;
+
+  
+        
         draw_rect_bound(&tmprect, &windowBounds, 0x505050);
         shrink_rect(&tmprect, 1);
         draw_rect_bound(&tmprect, &windowBounds, 0x404040);
@@ -72,11 +87,13 @@ void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
             tmprect.y = y_offset;
             tmprect.width = x_right - x_left;
             tmprect.height = TRACK_HEIGHT_PX - 2;
-            draw_rect_bound(&tmprect, &windowBounds, 0x004477);
+
+            
+            draw_rect_bound(&tmprect, &windowBounds, doInvert(0x004477, crtObj == selectedObj));
             shrink_rect(&tmprect, 1);
-            draw_rect_bound(&tmprect, &windowBounds, 0x006699);
+            draw_rect_bound(&tmprect, &windowBounds, doInvert(0x006699, crtObj == selectedObj));
             shrink_rect(&tmprect, 1);
-            draw_rect_bound(&tmprect, &windowBounds, 0x0088BB);
+            draw_rect_bound(&tmprect, &windowBounds, doInvert(0x0088BB, crtObj == selectedObj));
             shrink_rect(&tmprect, 3);
     
             draw_text_limited(crtObj->fileName, tmprect.x, tmprect.y, 0xFFFFFF, ANCHOR_LEFT, tmprect.width);
@@ -135,4 +152,43 @@ void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
 void timeline_scroll(int delta) {
     int new_scroll = (int)scroll_y - delta / 20;
     scroll_y = new_scroll >= 0 ? new_scroll : 0;
+}
+
+void timeline_handle_event(Event* event) {
+    // TODO: add so you can drag things around tracks
+    switch (event->type) {
+        case EVENT_MOUSEBUTTONDOWN:
+            selectedObj = 0;
+            if (event->x <= 40) break;
+            uint32_t mouseX = event->x - 40;
+            uint32_t percentage = mouseX * 100 / (windows[POSITION_BOTTOM].width - 40);
+            uint32_t timelineMsClick = x_bound_l + ((x_bound_r - x_bound_l) * percentage / 100);
+
+            int mouseY = event->y + scroll_y - 70 - windows[POSITION_TOPLEFT].height;
+            if (mouseY < 0) break;
+            uint32_t trackClick = mouseY / TRACK_HEIGHT_PX;
+
+            
+            debugf(DEBUG_VERBOSE, "Clicked on %u ms, track %u.", timelineMsClick, trackClick);
+            if (trackClick > 8) break;
+
+            // find any track on there?
+
+            struct TimelineObject* crtItem = tracks[trackClick].first;
+            while (crtItem) {
+                if (crtItem->timePosMs < timelineMsClick && crtItem->timePosMs + crtItem->length > timelineMsClick) {
+                    if (crtItem->timePosMs > crtTimelineMs) {crtTimelineMs = crtItem->timePosMs + 1; break;}
+                    if (crtItem->timePosMs + crtItem->length < crtTimelineMs) {crtTimelineMs = crtItem->timePosMs + crtItem->length; break;}
+                    break;
+                }
+                crtItem = crtItem->nextObject;
+            }
+            if (crtItem) {
+                debugf(DEBUG_VERBOSE, "The previous click also affected file %s.", crtItem->fileName);
+            } else {
+                crtTimelineMs = timelineMsClick;
+            }
+            selectedObj = crtItem;
+            
+    }
 }
