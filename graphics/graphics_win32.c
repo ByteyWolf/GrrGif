@@ -425,19 +425,22 @@ void set_window_title(char *title) {
 }
 
 char* choose_file() {
-    static char szFileName[MAX_PATH] = "";
+    char* szFileName = malloc(512);
+    if (!szFileName) {printf("Failed to alloc filename\n"); return 0; }
     
     OPENFILENAME ofn;
     ZeroMemory(&ofn, sizeof(ofn));
+    ZeroMemory(szFileName, 512);
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = hwnd;
     ofn.lpstrFilter = "GIF animations\0*.GIF\0All Files\0*.*\0\0";
     ofn.lpstrFile = szFileName;
-    ofn.nMaxFile = sizeof(szFileName);
+    ofn.nMaxFile = 511;
     ofn.lpstrTitle = "Select a file";
     ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-    if (GetOpenFileName(&ofn))
-        return szFileName;
+    if (GetOpenFileName(&ofn)) {
+        printf("file %s\n", szFileName);
+        return szFileName; }
     else
         return NULL;
 }
