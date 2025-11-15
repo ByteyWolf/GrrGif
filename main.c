@@ -39,6 +39,8 @@ extern struct GUIButton* buttonBase;
 extern struct GUIButton* crtButtonHovering;
 extern struct GUIButton* crtButtonHeld;
 
+uint8_t mouseDown = 0;
+
 void shrink_rect(Rect* rect, int pixels) {
     rect->x += pixels;
     rect->y += pixels;
@@ -156,6 +158,7 @@ void insertTrack(char* filename) {
     test1->metadata = metadata;
     test1->fileName = filename;
     test1->nextObject = 0;
+    test1->beingDragged = 0;
 
     insertTimelineObjFree(test1);
 }
@@ -250,6 +253,7 @@ int main(int argc, char *argv[]) {
                     break;
                 }
                 case EVENT_MOUSEBUTTONDOWN:
+                    mouseDown = 1;
                     draggingWindowBorder = eligibleToDragBorder;
                     switch (draggingWindowBorder) {
                         case DRAG_BORDER_X:
@@ -265,6 +269,7 @@ int main(int argc, char *argv[]) {
                     }
                     break;
                 case EVENT_MOUSEBUTTONUP:
+                    mouseDown = 0;
                     draggingWindowBorder = DRAG_BORDER_NONE;
                     //setButtonState(crtButtonHeld, BUTTON_STATE_NORMAL);
                     if (crtButtonHeld)  hoverLogic(crtButtonHeld, event);

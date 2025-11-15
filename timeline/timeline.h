@@ -41,6 +41,10 @@ struct TimelineObject {
     uint32_t timePosMs;
     uint32_t length;
 
+    uint32_t fakeTimePosMs;
+    uint8_t fakeTrack;
+    uint8_t beingDragged;
+
     uint8_t track;
 
     char* fileName;

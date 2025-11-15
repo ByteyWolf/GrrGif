@@ -374,6 +374,7 @@ int draw_text_limited(char *textraw, int x, int y, uint32_t color, uint8_t ancho
 
     SetBkMode(memdc, TRANSPARENT);
     TextOut(memdc, x, y, text, strlen(text));
+    free(text);
 
     return 1;
 }

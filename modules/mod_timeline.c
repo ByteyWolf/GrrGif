@@ -17,16 +17,91 @@ static uint32_t x_bound_r = 2000;
 extern uint32_t crtTimelineMs;
 extern uint32_t timelineLengthMs;
 extern struct Timeline tracks[];
-
 extern struct ModuleWindow windows[3];
+extern struct TimelineObject* selectedObj;
+extern uint8_t mouseDown;
 
-static struct TimelineObject* selectedObj = 0;
+static uint32_t initialMsMouse = 0;
+static uint32_t dragStartMs = 0;
+static uint8_t dragStartTrack = 0;
 
 uint32_t doInvert(uint32_t color, uint8_t invert) {
-    if (invert) {
-        return 0xFFFFFF - color;
-    }
+    if (invert == 2) return 0xFFFFFF;
+    if (invert) return 0xFFFFFF - color;
     return color;
+}
+
+uint8_t check_overlap(struct TimelineObject* obj, uint32_t pos, uint32_t length, uint8_t track) {
+    struct TimelineObject* crtObj = tracks[track].first;
+    uint32_t obj_right = pos + length;
+
+    while (crtObj) {
+        if (crtObj == obj) {
+            crtObj = crtObj->nextObject;
+            continue;
+        }
+
+        uint32_t crt_right = crtObj->timePosMs + crtObj->length;
+
+        if (!(obj_right <= crtObj->timePosMs || pos >= crt_right)) {
+            return 1;
+        }
+
+        crtObj = crtObj->nextObject;
+    }
+    return 0;
+}
+
+void remove_from_track(struct TimelineObject* obj) {
+    struct TimelineObject* crtObj = tracks[obj->track].first;
+    struct TimelineObject* prevObj = NULL;
+
+    while (crtObj) {
+        if (crtObj == obj) {
+            if (prevObj) {
+                prevObj->nextObject = obj->nextObject;
+            } else {
+                tracks[obj->track].first = obj->nextObject;
+            }
+            if (!obj->nextObject) {
+                tracks[obj->track].last = prevObj;
+            }
+            return;
+        }
+        prevObj = crtObj;
+        crtObj = crtObj->nextObject;
+    }
+}
+
+void insert_into_track(struct TimelineObject* obj, uint8_t track) {
+    obj->track = track;
+    obj->nextObject = NULL;
+
+    if (!tracks[track].first) {
+        tracks[track].first = obj;
+        tracks[track].last = obj;
+        return;
+    }
+
+    struct TimelineObject* crtObj = tracks[track].first;
+    struct TimelineObject* prevObj = NULL;
+
+    while (crtObj) {
+        if (crtObj->timePosMs > obj->timePosMs) {
+            obj->nextObject = crtObj;
+            if (prevObj) {
+                prevObj->nextObject = obj;
+            } else {
+                tracks[track].first = obj;
+            }
+            return;
+        }
+        prevObj = crtObj;
+        crtObj = crtObj->nextObject;
+    }
+
+    prevObj->nextObject = obj;
+    tracks[track].last = obj;
 }
 
 void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
@@ -43,7 +118,6 @@ void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     Rect tmprect;
     set_font_size(8);
 
-    // draw tracks
     for (uint8_t trackId = trackIdMin; trackId < trackIdMax; trackId++) {
         uint32_t y_offset = y + 70 - (scroll_y % TRACK_HEIGHT_PX) + TRACK_HEIGHT_PX * (uint32_t)(trackId - trackIdMin);
         if (y_offset < y + 30) continue;
@@ -54,8 +128,6 @@ void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
         tmprect.width = width - 40;
         tmprect.height = TRACK_HEIGHT_PX;
 
-  
-        
         draw_rect_bound(&tmprect, &windowBounds, 0x505050);
         shrink_rect(&tmprect, 1);
         draw_rect_bound(&tmprect, &windowBounds, 0x404040);
@@ -67,43 +139,50 @@ void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
         draw_text(tmp, x + 10, y_offset, 0xFFFFFF);
     }
 
-    // draw timeline objects
-    for (uint8_t track = 0; track<MAX_TRACKS-1; track++) {
+    for (uint8_t track = 0; track < MAX_TRACKS - 1; track++) {
         struct TimelineObject* crtObj = tracks[track].first;
-        if (track < trackIdMin || track >= trackIdMax) { continue; }
-    
+        if (track < trackIdMin || track >= trackIdMax) continue;
+
         while (crtObj) {
-            if (crtObj->timePosMs + crtObj->length < x_bound_l || crtObj->timePosMs > x_bound_r) { crtObj = crtObj->nextObject; continue; }
-    
-            uint32_t y_offset = y + 71 - (scroll_y % TRACK_HEIGHT_PX) + TRACK_HEIGHT_PX * (track - trackIdMin);
-    
-            uint32_t x_left = crtObj->timePosMs < x_bound_l ? x_bound_l : crtObj->timePosMs;
-            uint32_t x_right = crtObj->timePosMs + crtObj->length > x_bound_r ? x_bound_r : crtObj->timePosMs + crtObj->length;
-    
+            if (!crtObj->beingDragged) {
+                crtObj->fakeTimePosMs = crtObj->timePosMs;
+                crtObj->fakeTrack = crtObj->track;
+            }
+
+            if (crtObj->fakeTimePosMs + crtObj->length < x_bound_l || crtObj->fakeTimePosMs > x_bound_r) {
+                crtObj = crtObj->nextObject;
+                continue;
+            }
+
+            uint32_t y_offset = y + 71 - (scroll_y % TRACK_HEIGHT_PX) + TRACK_HEIGHT_PX * (crtObj->fakeTrack - trackIdMin);
+
+            uint32_t x_left = crtObj->fakeTimePosMs < x_bound_l ? x_bound_l : crtObj->fakeTimePosMs;
+            uint32_t x_right = crtObj->fakeTimePosMs + crtObj->length > x_bound_r ? x_bound_r : crtObj->fakeTimePosMs + crtObj->length;
+
             x_left = (x_left - x_bound_l) * (width - 40) / (x_bound_r - x_bound_l);
             x_right = (x_right - x_bound_l) * (width - 40) / (x_bound_r - x_bound_l);
-    
+
             tmprect.x = x + 40 + x_left;
             tmprect.y = y_offset;
             tmprect.width = x_right - x_left;
             tmprect.height = TRACK_HEIGHT_PX - 2;
 
-            
-            draw_rect_bound(&tmprect, &windowBounds, doInvert(0x004477, crtObj == selectedObj));
+            uint8_t modifier = crtObj == selectedObj;
+            if (crtObj->beingDragged) modifier = 2;
+
+            draw_rect_bound(&tmprect, &windowBounds, doInvert(0x004477, modifier));
             shrink_rect(&tmprect, 1);
-            draw_rect_bound(&tmprect, &windowBounds, doInvert(0x006699, crtObj == selectedObj));
+            draw_rect_bound(&tmprect, &windowBounds, doInvert(0x006699, modifier));
             shrink_rect(&tmprect, 1);
-            draw_rect_bound(&tmprect, &windowBounds, doInvert(0x0088BB, crtObj == selectedObj));
+            draw_rect_bound(&tmprect, &windowBounds, doInvert(0x0088BB, modifier));
             shrink_rect(&tmprect, 3);
-    
-            draw_text_limited(crtObj->fileName, tmprect.x, tmprect.y, 0xFFFFFF, ANCHOR_LEFT, tmprect.width);
-    
+
+            draw_text_limited(crtObj->fileName, tmprect.x, tmprect.y, modifier > 1 ? 0 : 0xFFFFFF, ANCHOR_LEFT, tmprect.width);
+
             crtObj = crtObj->nextObject;
         }
     }
-    
 
-    // draw playhead
     if (crtTimelineMs >= x_bound_l && crtTimelineMs <= x_bound_r) {
         uint32_t playhead_x = x + 40 + (crtTimelineMs - x_bound_l) * (width - 40) / (x_bound_r - x_bound_l);
         tmprect.x = playhead_x;
@@ -154,41 +233,102 @@ void timeline_scroll(int delta) {
     scroll_y = new_scroll >= 0 ? new_scroll : 0;
 }
 
+uint8_t get_mouse_data(Event* event, uint32_t* timelineMsClick, uint8_t* track) {
+    if (event->x < 40) return 0;
+
+    uint32_t mouseX = event->x - 40;
+    uint32_t percentage = mouseX * 100 / (windows[POSITION_BOTTOM].width - 40);
+    *timelineMsClick = x_bound_l + ((x_bound_r - x_bound_l) * percentage / 100);
+
+    int mouseY = event->y + scroll_y - 70 - windows[POSITION_TOPLEFT].height;
+    if (mouseY < 0) return 0;
+
+    *track = mouseY / TRACK_HEIGHT_PX;
+    if (*track >= MAX_TRACKS) return 0;
+
+    return 1;
+}
+
 void timeline_handle_event(Event* event) {
-    // TODO: add so you can drag things around tracks
+    if (event->x <= 40 || event->y <= windows[POSITION_TOPLEFT].height) return;
+
     switch (event->type) {
-        case EVENT_MOUSEBUTTONDOWN:
-            selectedObj = 0;
-            if (event->x <= 40) break;
-            uint32_t mouseX = event->x - 40;
-            uint32_t percentage = mouseX * 100 / (windows[POSITION_BOTTOM].width - 40);
-            uint32_t timelineMsClick = x_bound_l + ((x_bound_r - x_bound_l) * percentage / 100);
+        case EVENT_MOUSEBUTTONDOWN: {
+            selectedObj = NULL;
+            uint8_t trackClick;
+            uint32_t timelineMsClick;
+            if (!get_mouse_data(event, &timelineMsClick, &trackClick)) break;
 
-            int mouseY = event->y + scroll_y - 70 - windows[POSITION_TOPLEFT].height;
-            if (mouseY < 0) break;
-            uint32_t trackClick = mouseY / TRACK_HEIGHT_PX;
-
-            
             debugf(DEBUG_VERBOSE, "Clicked on %u ms, track %u.", timelineMsClick, trackClick);
-            if (trackClick > 8) break;
-
-            // find any track on there?
 
             struct TimelineObject* crtItem = tracks[trackClick].first;
             while (crtItem) {
-                if (crtItem->timePosMs < timelineMsClick && crtItem->timePosMs + crtItem->length > timelineMsClick) {
-                    if (crtItem->timePosMs > crtTimelineMs) {crtTimelineMs = crtItem->timePosMs + 1; break;}
-                    if (crtItem->timePosMs + crtItem->length < crtTimelineMs) {crtTimelineMs = crtItem->timePosMs + crtItem->length; break;}
+                if (crtItem->timePosMs <= timelineMsClick && crtItem->timePosMs + crtItem->length > timelineMsClick) {
+                    selectedObj = crtItem;
+                    dragStartMs = crtItem->timePosMs;
+                    dragStartTrack = crtItem->track;
+                    initialMsMouse = timelineMsClick;
+
+                    if (crtItem->timePosMs > crtTimelineMs) {
+                        crtTimelineMs = crtItem->timePosMs + 1;
+                    } else if (crtItem->timePosMs + crtItem->length < crtTimelineMs) {
+                        crtTimelineMs = crtItem->timePosMs + crtItem->length;
+                    }
+
+                    debugf(DEBUG_VERBOSE, "Selected file %s.", crtItem->fileName);
                     break;
                 }
                 crtItem = crtItem->nextObject;
             }
-            if (crtItem) {
-                debugf(DEBUG_VERBOSE, "The previous click also affected file %s.", crtItem->fileName);
-            } else {
+
+            if (!selectedObj) {
                 crtTimelineMs = timelineMsClick;
             }
-            selectedObj = crtItem;
-            
+            break;
+        }
+
+        case EVENT_MOUSEMOVE: {
+            if (!selectedObj || !mouseDown) break;
+
+            uint8_t trackClick;
+            uint32_t timelineMsClick;
+            if (!get_mouse_data(event, &timelineMsClick, &trackClick)) break;
+
+            int msDelta = (int)timelineMsClick - (int)initialMsMouse;
+            int32_t newPos = (int32_t)dragStartMs + msDelta;
+            if (newPos < 0) newPos = 0;
+
+            selectedObj->fakeTimePosMs = (uint32_t)newPos;
+            selectedObj->fakeTrack = trackClick;
+            selectedObj->beingDragged = 1;
+            break;
+        }
+
+        case EVENT_MOUSEBUTTONUP: {
+            if (!selectedObj || !selectedObj->beingDragged) break;
+
+            uint32_t targetPos = selectedObj->fakeTimePosMs;
+            uint8_t targetTrack = selectedObj->fakeTrack;
+
+            if (!check_overlap(selectedObj, targetPos, selectedObj->length, targetTrack)) {
+                if (targetTrack != selectedObj->track) {
+                    remove_from_track(selectedObj);
+                    selectedObj->timePosMs = targetPos;
+                    insert_into_track(selectedObj, targetTrack);
+                } else {
+                    selectedObj->timePosMs = targetPos;
+                }
+
+                uint32_t rbound = selectedObj->timePosMs + selectedObj->length;
+                if (rbound > timelineLengthMs) timelineLengthMs = rbound;
+                if (rbound > tracks[selectedObj->track].length) tracks[selectedObj->track].length = rbound;
+            } else {
+                selectedObj->fakeTimePosMs = selectedObj->timePosMs;
+                selectedObj->fakeTrack = selectedObj->track;
+            }
+
+            selectedObj->beingDragged = 0;
+            break;
+        }
     }
 }

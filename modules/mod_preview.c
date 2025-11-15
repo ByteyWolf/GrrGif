@@ -11,12 +11,12 @@
 
 extern struct Timeline tracks[];
 extern uint32_t crtTimelineMs;
+extern uint32_t timelineLengthMs;
 
 extern uint32_t fileWidthPx;
 extern uint32_t fileHeightPx;
 
 extern uint8_t previewPlaying;
-extern uint32_t crtTimelineMs;
 
 uint32_t* pixelPreview = NULL;
 uint32_t previewHeight;
@@ -39,7 +39,7 @@ uint32_t canvas_height = 0;
 uint32_t lastMouseDragX = 0;
 uint32_t lastMouseDragY = 0;
 
-uint8_t mouseDown = 0;
+extern uint8_t mouseDown;
 
 uint8_t refreshFrameCache = 0;
 
@@ -128,6 +128,8 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     
     uint32_t* usePreview = pixelPreview;
     if (refreshFrameCache) objOnThisFrameCount = 0;
+
+    uint32_t furthestMs = 0;
     
     for (uint8_t track = 0; track<MAX_TRACKS-1; track++) {
         struct TimelineObject* crtObj = tracks[track].first;
@@ -136,6 +138,7 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
             //debugf(DEBUG_VERBOSE, "drawing track %u! first: %p last: %p crt: %p", track, tracks[track].first, tracks[track].last, crtObj);
             uint32_t begin = crtObj->timePosMs;
             uint32_t len = crtObj->length;
+            if (begin+len > furthestMs) furthestMs = begin+len;
             if (begin <= crtTimelineMs && begin + len >= crtTimelineMs) {
                 if (pixelPreview != usePreview) {
                     crtObj = NULL;
@@ -192,6 +195,7 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
             crtObj = crtObj->nextObject;
         }
     }
+    timelineLengthMs = furthestMs;
     //printf("waow %p %ux%u %u %u\n", usePreview, previewWidth, previewHeight, x+20, y+30);
     canvas_x = x+20+offset_x;
     canvas_y = y+30+offset_y;
@@ -242,12 +246,13 @@ struct TimelineObject* getHoveringObj(Event* event) {
 
 void preview_handle_event(Event* event) {
     if (!event) return;
+    if (event->x <= windows[POSITION_TOPLEFT].width || event->y >= windows[POSITION_TOPLEFT].height) return;
     switch (event->type) {
         case EVENT_MOUSEBUTTONDOWN: {
             selectedObj = 0;
             struct TimelineObject* hoveringObj = getHoveringObj(event);
             selectedObj = hoveringObj; // no null check is intentional!
-            mouseDown = 1;
+            //mouseDown = 1;
             break;
         }
         case EVENT_MOUSEMOVE:
@@ -267,7 +272,7 @@ void preview_handle_event(Event* event) {
             break;
             
         case EVENT_MOUSEBUTTONUP:
-            mouseDown = 0;
+            //mouseDown = 0;
             //selectedObj = 0;
             //didDrag = 0;
             break;
