@@ -43,14 +43,21 @@ typedef struct Event {
 #define CURSOR_SIZEV    3
 #define CURSOR_MOVE     4
 
-#define COMMAND_FILE_EXIT 1
-#define COMMAND_ACTION_ADDTRACK 2
-#define COMMAND_HELP_ABOUT 3
+#define COMMAND_FILE_NEW_PROJECT 1
+#define COMMAND_FILE_OPEN_PROJECT 2
+#define COMMAND_FILE_SAVE_PROJECT 3
+#define COMMAND_FILE_EXPORT 4
+#define COMMAND_FILE_EXIT 5
+#define COMMAND_ACTION_ADDTRACK 6
+#define COMMAND_HELP_ABOUT 7
 
 #define MSGBOX_INFO 0
 #define MSGBOX_WARNING 1
 #define MSGBOX_ERROR 2
 #define MSGBOX_QUESTION 3
+
+#define FILETYPE_GIF 0
+#define FILETYPE_GRRPROJ 1
 
 
 int init_graphics(uint32_t width, uint32_t height, Event *event);
@@ -79,7 +86,8 @@ void set_cursor(int type);
 
 void shrink_rect(Rect* rect, int pixels);
 
-char* choose_file();
+char* choose_file(uint8_t type);
+char* choose_save_file(uint8_t type);
 int messagebox(char* title, char* body, int type);
 
 void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height);

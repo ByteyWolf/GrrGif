@@ -427,7 +427,7 @@ void set_window_title(char *title) {
     SetWindowTextA(hwnd, title);
 }
 
-char* choose_file() {
+char* choose_file(uint8_t type) {
     char* szFileName = malloc(512);
     if (!szFileName) {printf("Failed to alloc filename\n"); return 0; }
     
@@ -436,16 +436,40 @@ char* choose_file() {
     ZeroMemory(szFileName, 512);
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = hwnd;
-    ofn.lpstrFilter = "GIF animations\0*.GIF\0All Files\0*.*\0\0";
+    ofn.lpstrFilter = type ? "GrrGif projects\0*.grrproj\0All Files\0*.*\0\0" : "GIF animations\0*.GIF\0All Files\0*.*\0\0";
     ofn.lpstrFile = szFileName;
     ofn.nMaxFile = 511;
     ofn.lpstrTitle = "Select a file";
     ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
     if (GetOpenFileName(&ofn)) {
-        printf("file %s\n", szFileName);
         return szFileName; }
     else
         return NULL;
+}
+
+char* choose_save_file(uint8_t type) {
+    char* szFileName = malloc(512);
+    if (!szFileName) {printf("Failed to alloc filename\n"); return 0; }
+
+    OPENFILENAME ofn;
+    ZeroMemory(&ofn, sizeof(ofn));
+    ZeroMemory(szFileName, 512);
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFilter = type ? "GrrGif projects\0*.grrproj\0All Files\0*.*\0\0" : "GIF animations\0*.GIF\0All Files\0*.*\0\0";
+    ofn.lpstrFile = szFileName;
+    ofn.nMaxFile = 511;
+    ofn.lpstrTitle = "Save Project As";
+    ofn.lpstrDefExt = "grrproj";
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+    if (GetSaveFileName(&ofn)) {
+        printf("Saving to %s\n", szFileName);
+        return szFileName;
+    }
+    else {
+        free(szFileName);
+        return NULL;
+    }
 }
 
 int messagebox(char* title, char* body, int type) {

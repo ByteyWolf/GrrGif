@@ -4,6 +4,7 @@
 #include "timeline/timeline.h"
 #include "debug.h"
 #include "graphics/gui_utility.h"
+#include "projectformat.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -47,11 +48,6 @@ void shrink_rect(Rect* rect, int pixels) {
 
 void hoverLogic(struct GUIButton* crtButton, Event* event) {
     if (!crtButton) {debugf(DEBUG_INFO, "Button hover error"); return;}
-    /*if (crtButtonHeld) {
-        drawButton(crtButton, BUTTON_STATE_NORMAL);
-        drawButton(crtButtonHeld, BUTTON_STATE_CLICK);
-        printf("held\n");
-    }*/
             
     uint32_t left = getWindowX(crtButton->weldToWindow) + crtButton->localX;
     uint32_t top = getWindowY(crtButton->weldToWindow) + crtButton->localY;
@@ -180,8 +176,14 @@ int main(int argc, char *argv[]) {
     uint8_t menuFile = create_menu();
     uint8_t menuTimeline = create_menu();
     uint8_t menuHelp = create_menu();
-
-    append_menu(menuFile, "Exit...", COMMAND_FILE_EXIT);
+    
+    //append_menu(menuFile, "New Project", COMMAND_FILE_NEW_PROJECT);
+    append_menu(menuFile, "Open Project", COMMAND_FILE_OPEN_PROJECT);
+    append_menu(menuFile, "Save Project", COMMAND_FILE_SAVE_PROJECT);
+    append_menu_separator(menuFile);
+    append_menu(menuFile, "Export GIF", COMMAND_FILE_EXPORT);
+    append_menu_separator(menuFile);
+    append_menu(menuFile, "Exit", COMMAND_FILE_EXIT);
 
     append_menu(menuTimeline, "Add to Timeline", COMMAND_ACTION_ADDTRACK);
 
@@ -192,7 +194,7 @@ int main(int argc, char *argv[]) {
     finalize_menu(menuHelp, "Help");
 
     scheduleRendering();
-
+    set_window_title("GrrGif");
     
     while (running) {
 
@@ -278,8 +280,27 @@ int main(int argc, char *argv[]) {
                         case COMMAND_FILE_EXIT:
                             running = 0;
                             break;
+
+                        case COMMAND_FILE_SAVE_PROJECT: {
+                            char* filePath = choose_save_file(FILETYPE_GRRPROJ);
+                            if (!filePath) break;
+                            if (!saveProject(filePath)) messagebox("GrrGif", "Failed to save project.", MSGBOX_ERROR);
+                            free(filePath);
+                            break;
+                        }
+
+                        case COMMAND_FILE_OPEN_PROJECT: {
+                            //todo: clean current project
+                            char* filePath = choose_file(FILETYPE_GRRPROJ);
+                            if (!filePath) break;
+                            if (!loadProject(filePath)) messagebox("GrrGif", "Failed to load project.", MSGBOX_ERROR);
+                            pendingRedraw = 1;
+                            free(filePath);
+                            break;
+                        }
+                            
                         case COMMAND_ACTION_ADDTRACK: {
-                            char* filePath = choose_file();
+                            char* filePath = choose_file(FILETYPE_GIF);
                             if (!filePath) break;
                             insertTrack(filePath);
                             pendingRedraw = 1;
