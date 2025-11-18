@@ -5,6 +5,7 @@
 #include "../debug.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define TRACK_HEIGHT_PX 40
 #define TOPBAR_HEIGHT_PX 30
@@ -24,6 +25,8 @@ extern uint8_t mouseDown;
 static uint32_t initialMsMouse = 0;
 static uint32_t dragStartMs = 0;
 static uint8_t dragStartTrack = 0;
+
+static uint32_t* obj_bounds[MAX_TRACKS] = {0};
 
 uint32_t doInvert(uint32_t color, uint8_t invert) {
     if (invert == 2) return 0xFFFFFF;
@@ -52,6 +55,15 @@ uint8_t check_overlap(struct TimelineObject* obj, uint32_t pos, uint32_t length,
     return 0;
 }
 
+void calculate_bounds() {
+    for (uint8_t track = 0; track < MAX_TRACKS - 1; track++) {
+        uint32_t* bounds = obj_bounds[track];
+        if (bounds) free(bounds);
+        bounds = malloc(sizeof(uint32_t) * tracks[track].objects);
+    }
+    
+}
+
 void remove_from_track(struct TimelineObject* obj) {
     struct TimelineObject* crtObj = tracks[obj->track].first;
     struct TimelineObject* prevObj = NULL;
@@ -71,9 +83,10 @@ void remove_from_track(struct TimelineObject* obj) {
         prevObj = crtObj;
         crtObj = crtObj->nextObject;
     }
+    tracks[obj->track].objects --;
 }
 
-void insert_into_track(struct TimelineObject* obj, uint8_t track) {
+/*void insert_into_track(struct TimelineObject* obj, uint8_t track) {
     obj->track = track;
     obj->nextObject = NULL;
 
@@ -102,7 +115,7 @@ void insert_into_track(struct TimelineObject* obj, uint8_t track) {
 
     prevObj->nextObject = obj;
     tracks[track].last = obj;
-}
+}*/
 
 void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     Rect windowBounds;
@@ -249,6 +262,8 @@ uint8_t get_mouse_data(Event* event, uint32_t* timelineMsClick, uint8_t* track) 
     return 1;
 }
 
+// todo: show resize cursor by defining uint32_t bounds[]
+
 void timeline_handle_event(Event* event) {
     if (event->x <= 40 || event->y <= windows[POSITION_TOPLEFT].height) return;
 
@@ -314,7 +329,7 @@ void timeline_handle_event(Event* event) {
                 if (targetTrack != selectedObj->track) {
                     remove_from_track(selectedObj);
                     selectedObj->timePosMs = targetPos;
-                    insert_into_track(selectedObj, targetTrack);
+                    insertTimelineObj(selectedObj, targetTrack);
                 } else {
                     selectedObj->timePosMs = targetPos;
                 }

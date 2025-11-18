@@ -47,6 +47,8 @@ uint64_t current_time_ms() {
 
 
 // insert new object at any free spot where the cursor is hovering
+
+// todo: sometimes this does not respect free spaces
 int insertTimelineObj(struct TimelineObject* obj, uint8_t track) {
     if (track > MAX_TRACKS - 1) return 1;
     if (!obj) return 1;
@@ -91,7 +93,7 @@ int insertTimelineObj(struct TimelineObject* obj, uint8_t track) {
     refreshFrameCache = 1;
 
     obj->track = track;
-
+    tracks[track].objects ++;
 
     return 0;
 }

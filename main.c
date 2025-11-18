@@ -226,7 +226,7 @@ int main(int argc, char *argv[]) {
                             set_cursor(CURSOR_SIZEV);
                             eligibleToDragBorder = DRAG_BORDER_Y;
                         } else {
-                            set_cursor(CURSOR_NORMAL);
+                            if (eligibleToDragBorder != DRAG_BORDER_NONE) set_cursor(CURSOR_NORMAL);
                             eligibleToDragBorder = DRAG_BORDER_NONE;
                         }
                     }

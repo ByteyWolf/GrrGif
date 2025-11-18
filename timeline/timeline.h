@@ -58,6 +58,7 @@ struct Timeline {
     struct TimelineObject* first;
     struct TimelineObject* last;
     uint32_t length;
+    uint32_t objects;
 };
 
 int insertTimelineObj(struct TimelineObject* obj, uint8_t track);

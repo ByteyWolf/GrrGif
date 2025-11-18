@@ -82,7 +82,7 @@ static uint8_t handle_gce(gif_context_t* ctx) {
 
     if (delay_time < 1) delay_time = 10;
 
-    ctx->current_gce.delay_time = delay_time;
+    ctx->current_gce.delay_time = delay_time * 10;
     ctx->current_gce.transp_idx = gce_block[4];
     ctx->current_gce.disposal_method = (packed_gce >> 2) & 7;
     ctx->current_gce.transp_flag = packed_gce & 0x1;
@@ -245,7 +245,7 @@ static uint8_t handle_image_descriptor(gif_context_t* ctx) {
     uint8_t bg_index_local = lct_flag ? ctx->current_gce.transp_idx : ctx->bg_index;
 
     // pre-fill
-    if (ctx->crt_frame > 0) {
+    if (ctx->crt_frame != 0) {
         if (ctx->current_gce.disposal_method == DISPOSE_BACKGROUND) {
             memset(frame, bg_index_local, ctx->file_width * ctx->file_height);
         } else if (ctx->current_gce.disposal_method == DISPOSE_PREVIOUS) {
@@ -261,6 +261,9 @@ static uint8_t handle_image_descriptor(gif_context_t* ctx) {
 
     current_frame->pixels = frame;
     current_frame->delay = ctx->current_gce.delay_time;
+    if (ctx->crt_frame != 0) {
+        current_frame->delay += ctx->img->frames[ctx->crt_frame - 1]->delay;
+    }
     current_frame->transp_idx = bg_index_local;
 
     memcpy(current_frame->palette, ctx->local_palette, sizeof(current_frame->palette));
