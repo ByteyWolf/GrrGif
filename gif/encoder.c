@@ -21,5 +21,5 @@ uint8_t export_gif(char* filepath, uint32_t max_colors) {
     if (!fd) return 0;
 
     if (!fwrite("GIF89a", 6, 1, fd)) {fclose(fd); return 0;}
-    
+    return 0;
 }
