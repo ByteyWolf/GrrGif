@@ -26,7 +26,12 @@ static uint32_t initialMsMouse = 0;
 static uint32_t dragStartMs = 0;
 static uint8_t dragStartTrack = 0;
 
-static uint32_t* obj_bounds[MAX_TRACKS] = {0};
+struct bound_data {
+    uint32_t bound_count;
+    uint32_t* bounds;
+};
+
+static struct bound_data obj_bounds[MAX_TRACKS] = {0};
 
 uint32_t doInvert(uint32_t color, uint8_t invert) {
     if (invert == 2) return 0xFFFFFF;
@@ -55,11 +60,23 @@ uint8_t check_overlap(struct TimelineObject* obj, uint32_t pos, uint32_t length,
     return 0;
 }
 
+// todo: Fix
 void calculate_bounds() {
     for (uint8_t track = 0; track < MAX_TRACKS - 1; track++) {
-        uint32_t* bounds = obj_bounds[track];
+        uint32_t* bounds = obj_bounds[track].bounds;
         if (bounds) free(bounds);
-        bounds = malloc(sizeof(uint32_t) * tracks[track].objects);
+        obj_bounds[track].bounds = malloc(sizeof(uint32_t) * tracks[track].objects * 2);
+        obj_bounds[track].bound_count = tracks[track].objects;
+        struct TimelineObject* crtObj = tracks[track].first;
+        uint32_t tracker = 0;
+        while (crtObj) {
+            if (tracker >= tracks[track].objects * 2) break;
+            obj_bounds[track].bounds[tracker] = crtObj->timePosMs;
+            tracker++;
+            obj_bounds[track].bounds[tracker] = crtObj->timePosMs + crtObj->length;
+            tracker++;
+            crtObj = crtObj->nextObject;
+        }
     }
     
 }
@@ -86,7 +103,7 @@ void remove_from_track(struct TimelineObject* obj) {
     tracks[obj->track].objects --;
 }
 
-/*void insert_into_track(struct TimelineObject* obj, uint8_t track) {
+void insert_into_track(struct TimelineObject* obj, uint8_t track) {
     obj->track = track;
     obj->nextObject = NULL;
 
@@ -115,7 +132,7 @@ void remove_from_track(struct TimelineObject* obj) {
 
     prevObj->nextObject = obj;
     tracks[track].last = obj;
-}*/
+}
 
 void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     Rect windowBounds;
@@ -262,10 +279,30 @@ uint8_t get_mouse_data(Event* event, uint32_t* timelineMsClick, uint8_t* track) 
     return 1;
 }
 
+uint8_t get_bounds_data(uint32_t timelineMsClick, uint8_t track, uint8_t* bound_side, uint32_t* hit_id) {
+    if (obj_bounds[track].bounds && obj_bounds[track].bound_count > 0) {
+        printf("bounds for track %u: ", track);
+        for (uint32_t boundId = 0; boundId < (obj_bounds[track].bound_count)*2; boundId++) {
+            
+            int diff = obj_bounds[track].bounds[boundId] - timelineMsClick;
+            printf("%u ", obj_bounds[track].bounds[boundId]);
+            if (diff > -40 && diff < 40) {
+                *bound_side = boundId % 2;
+                *hit_id = boundId / 2;
+                return 1;
+            }
+        }
+        putchar('\n');
+    }
+    return 0;
+}
+
 // todo: show resize cursor by defining uint32_t bounds[]
 
 void timeline_handle_event(Event* event) {
     if (event->x <= 40 || event->y <= windows[POSITION_TOPLEFT].height) return;
+
+    calculate_bounds();
 
     switch (event->type) {
         case EVENT_MOUSEBUTTONDOWN: {
@@ -303,11 +340,18 @@ void timeline_handle_event(Event* event) {
         }
 
         case EVENT_MOUSEMOVE: {
-            if (!selectedObj || !mouseDown) break;
-
             uint8_t trackClick;
             uint32_t timelineMsClick;
             if (!get_mouse_data(event, &timelineMsClick, &trackClick)) break;
+
+            uint8_t bound;
+            uint32_t boundId;
+            if (get_bounds_data(timelineMsClick, trackClick, &bound, &boundId)) {
+               set_cursor(CURSOR_SIZEH); 
+            } else set_cursor(CURSOR_NORMAL);
+            
+            
+            if (!selectedObj || !mouseDown) break;
 
             int msDelta = (int)timelineMsClick - (int)initialMsMouse;
             int32_t newPos = (int32_t)dragStartMs + msDelta;
@@ -329,7 +373,7 @@ void timeline_handle_event(Event* event) {
                 if (targetTrack != selectedObj->track) {
                     remove_from_track(selectedObj);
                     selectedObj->timePosMs = targetPos;
-                    insertTimelineObj(selectedObj, targetTrack);
+                    insert_into_track(selectedObj, targetTrack);
                 } else {
                     selectedObj->timePosMs = targetPos;
                 }
