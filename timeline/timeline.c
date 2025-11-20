@@ -45,10 +45,20 @@ uint64_t current_time_ms() {
 }
 #endif
 
+struct LoadedFile* findLoadedFile(char* filepath) {
+    for (uint8_t track = 0; track<MAX_TRACKS; track++) {
+        struct TimelineObject* crtTrack = tracks[track].first;
+        while (crtTrack) {
+            if (!strcmp(crtTrack->fileName, filepath)) {
+                return crtTrack->metadata;
+            }
+            crtTrack = crtTrack->nextObject;
+        }
+    }
+    return 0;
+}
 
 // insert new object at any free spot where the cursor is hovering
-
-// todo: sometimes this does not respect free spaces
 int insertTimelineObj(struct TimelineObject* obj, uint8_t track) {
     if (track > MAX_TRACKS - 1) return 1;
     if (!obj) return 1;

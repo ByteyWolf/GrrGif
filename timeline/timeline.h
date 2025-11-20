@@ -24,6 +24,8 @@ struct LoadedFile {
     char* textFont;
     uint32_t fontSize;
     uint8_t fontStyle;
+
+    uint32_t refCount;
 };
 
 struct Effect {
@@ -61,6 +63,7 @@ struct Timeline {
     uint32_t objects;
 };
 
+struct LoadedFile* findLoadedFile(char* filepath);
 int insertTimelineObj(struct TimelineObject* obj, uint8_t track);
 void insertTimelineObjFree(struct TimelineObject* obj);
 void timeline_heartbeat();

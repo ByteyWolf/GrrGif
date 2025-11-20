@@ -112,6 +112,7 @@ void renderUI() {
         }
         preview_draw(wwidth - windows[POSITION_TOPRIGHT].width, 0, windows[POSITION_TOPRIGHT].width, windows[POSITION_TOPRIGHT].height);
         timeline_draw(0, wheight - windows[POSITION_BOTTOM].height, windows[POSITION_BOTTOM].width, windows[POSITION_BOTTOM].height);
+        properties_draw(0, 0, windows[POSITION_TOPLEFT].width, windows[POSITION_TOPLEFT].height);
     
         struct GUIButton* crtButton = buttonBase;
         while (crtButton) {
@@ -140,21 +141,25 @@ void scheduleRendering() {
 #endif
 
 void insertTrack(char* filename) {
-    struct imageV2* imgLoaded = parse(filename);
-    if (!imgLoaded) { messagebox("GrrGif", "Failed to load file!", MSGBOX_ERROR); return;}
-    
-    struct LoadedFile* metadata = malloc(sizeof(struct LoadedFile));
-    metadata->imagePtr = imgLoaded;
-    metadata->type = FILE_ANIMATION;
+    struct LoadedFile* metadata = findLoadedFile(filename);
+    if (!metadata) {
+        struct imageV2* imgLoaded = parse(filename);
+        if (!imgLoaded) { messagebox("GrrGif", "Failed to load file!", MSGBOX_ERROR); return;}
+        
+        metadata = malloc(sizeof(struct LoadedFile));
+        metadata->imagePtr = imgLoaded;
+        metadata->type = FILE_ANIMATION;
+        metadata->refCount = 1;
+    } else metadata->refCount++;
 
     struct TimelineObject* test1 = malloc(sizeof(struct TimelineObject));
     test1->x = 30;
     test1->y = 0;
-    test1->width = imgLoaded->width;
-    test1->height = imgLoaded->height;
+    test1->width = metadata->imagePtr->width;
+    test1->height = metadata->imagePtr->height;
     test1->effectsList = 0;
     test1->timePosMs = 0;
-    test1->length = imgLoaded->frames[imgLoaded->frame_count-1]->delay;
+    test1->length = metadata->imagePtr->frames[metadata->imagePtr->frame_count-1]->delay;
     test1->metadata = metadata;
     test1->fileName = filename;
     test1->nextObject = 0;
