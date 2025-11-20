@@ -19,6 +19,8 @@ static char scratch_space[256] = {0};
 static Rect rect;
 static uint32_t rect_color = 0x333333;
 
+static struct GUITextBox* testBox = 0;
+
 void reset_rect(uint32_t x, uint32_t width) {
     rect_color = 0x333333;
     rect.width = width - 16;
@@ -99,6 +101,8 @@ void draw_object(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
 }
 
 void properties_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+    if (!testBox) {testBox = createTextBox(TEXTBOX_TYPE_INT32, 256); addTextBox(testBox);} 
+    
     set_font_size(FONT_SIZE_NORMAL);
     if (!selectedObj) draw_file(x, y, width, height); else draw_object(x, y, width, height);
 }

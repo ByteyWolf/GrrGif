@@ -1,10 +1,14 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include "../modules.h"
 #include "gui_utility.h"
 #include "graphics.h"
+#include "../timeline/timeline.h"
 
 struct GUIButton* buttonBase = 0;
+struct GUITextBox* textBoxBase = 0;
 extern struct ModuleWindow windows[3];
 extern uint32_t wwidth;
 extern uint32_t wheight;
@@ -15,10 +19,7 @@ extern uint8_t pendingRedraw;
 struct GUIButton* crtButtonHovering = 0;
 struct GUIButton* crtButtonHeld = 0;
 
-struct GUIButton* createButton() {
-    struct GUIButton* btn = malloc(sizeof(struct GUIButton));
-    return btn;
-}
+struct GUITextBox* crtTextBoxTyping = 0;
 
 uint32_t getWindowX(uint8_t type) {
     switch (type) {
@@ -42,10 +43,33 @@ uint32_t getWindowY(uint8_t type) {
     return 0;
 }
 
+struct GUIButton* createButton() {
+    struct GUIButton* btn = malloc(sizeof(struct GUIButton));
+    return btn;
+}
+
+struct GUITextBox* createTextBox(uint8_t type, uint16_t capacity) {
+    struct GUITextBox* box = malloc(sizeof(struct GUITextBox));
+    char* strVal = malloc(capacity + 1);
+    memset(box, 0, sizeof(struct GUITextBox));
+    memset(strVal, 0, capacity + 1);
+
+    box->type = type;
+    box->string_value = strVal;
+    
+    return box;
+}
+
 void addButton(struct GUIButton* btn) {
     btn->nextButton = 0;
     if (!buttonBase) {buttonBase = btn; return;}
     buttonBase->nextButton = btn;
+}
+
+void addTextBox(struct GUITextBox* textbox) {
+    textbox->nextTextBox = 0;
+    if (!textBoxBase) {textBoxBase = textbox; return;}
+    textbox->nextTextBox = textbox;
 }
 
 void drawButton(struct GUIButton* btn) {
@@ -91,6 +115,41 @@ void drawButton(struct GUIButton* btn) {
     pendingRedraw = 1;
 }
 
+void drawTextBox(struct GUITextBox* box) {
+    if (box->state == TEXTBOX_STATE_HIDDEN) return;
+    Rect boxRect;
+    boxRect.x = box->localX + getWindowX(box->weldToWindow);
+    boxRect.y = box->localY + getWindowY(box->weldToWindow);
+    boxRect.height = box->height;
+    boxRect.width = box->width;
+
+    uint32_t fillclr = 0x333333;
+    uint32_t textclr = 0xCCCCCC;
+    uint32_t borderclr = 0x191919;
+
+    if (box == crtTextBoxTyping) { fillclr = 0x444444; textclr = 0xFFFFFF;}
+
+    draw_rect(&boxRect, borderclr);
+    shrink_rect(&boxRect, 1);
+    draw_rect(&boxRect, 0x232323);
+    shrink_rect(&boxRect, 1);
+    draw_rect(&boxRect, fillclr);
+
+    // sync box value
+    if (box->type == TEXTBOX_TYPE_INT32) {
+        snprintf(box->string_value, box->capacity, "%d", box->numeric_value);
+    } else {
+        box->numeric_value = atoi(box->string_value);
+    }
+    
+    if (box->string_value) {
+        set_font_size(FONT_SIZE_NORMAL);
+        draw_text(box->string_value, boxRect.x + 2, boxRect.y, textclr);
+    }
+    pendingRedraw = 1;
+}
+
+
 void setButtonState(struct GUIButton* btn, uint8_t state) {
     if (!btn) return;
     if (state == BUTTON_STATE_NORMAL) {
@@ -118,6 +177,20 @@ void buttonCallback(struct GUIButton* btn) {
             previewPlaying = !previewPlaying;
             btn->text = previewPlaying ? "Stop" : "Play";
         }
+    }
+}
+
+void redraw_ui_elements() {
+    struct GUIButton* crtButton = buttonBase;
+    while (crtButton) {
+        drawButton(crtButton);
+        crtButton = crtButton->nextButton;
+    }
+
+    struct GUITextBox* crtBox = textBoxBase;
+    while (crtBox) {
+        drawTextBox(crtBox);
+        crtBox = crtBox->nextTextBox;
     }
 }
 

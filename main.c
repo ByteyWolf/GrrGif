@@ -36,8 +36,12 @@ uint32_t initialPos = 0;
 
 extern struct ModuleWindow windows[3];
 extern struct GUIButton* buttonBase;
+extern struct GUITextBox* textBoxBase;
+
 extern struct GUIButton* crtButtonHovering;
 extern struct GUIButton* crtButtonHeld;
+
+extern struct GUITextBox* crtTextBoxTyping;
 
 uint8_t mouseDown = 0;
 
@@ -113,12 +117,8 @@ void renderUI() {
         preview_draw(wwidth - windows[POSITION_TOPRIGHT].width, 0, windows[POSITION_TOPRIGHT].width, windows[POSITION_TOPRIGHT].height);
         timeline_draw(0, wheight - windows[POSITION_BOTTOM].height, windows[POSITION_BOTTOM].width, windows[POSITION_BOTTOM].height);
         properties_draw(0, 0, windows[POSITION_TOPLEFT].width, windows[POSITION_TOPLEFT].height);
-    
-        struct GUIButton* crtButton = buttonBase;
-        while (crtButton) {
-            drawButton(crtButton);
-            crtButton = crtButton->nextButton;
-        }
+        
+        redraw_ui_elements();
     
         flush_graphics();
     }
@@ -259,6 +259,7 @@ int main(int argc, char *argv[]) {
                 }
                 case EVENT_MOUSEBUTTONDOWN:
                     mouseDown = 1;
+                    crtTextBoxTyping = 0;
                     draggingWindowBorder = eligibleToDragBorder;
                     switch (draggingWindowBorder) {
                         case DRAG_BORDER_X:
@@ -272,6 +273,23 @@ int main(int argc, char *argv[]) {
                         setButtonState(crtButtonHovering, BUTTON_STATE_CLICK);
                         buttonCallback(crtButtonHeld);
                     }
+
+                    // select text box to click
+                    struct GUITextBox* crtBox = textBoxBase;
+                    while (crtBox) {
+                        uint32_t left = getWindowX(crtBox->weldToWindow) + crtBox->localX;
+                        uint32_t top = getWindowY(crtBox->weldToWindow) + crtBox->localY;
+                        if (crtBox->state != TEXTBOX_STATE_HIDDEN &&
+                            event->x > left &&
+                            event->y > top &&
+                            event->x < (left + crtBox->width) &&
+                            event->y < (top + crtBox->height)) {
+
+                            crtTextBoxTyping = crtBox;
+                            break;
+                        }
+                    }
+                    
                     break;
                 case EVENT_MOUSEBUTTONUP:
                     mouseDown = 0;

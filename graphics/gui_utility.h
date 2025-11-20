@@ -12,8 +12,9 @@
 #define TEXTBOX_TYPE_STRING 1
 
 #define TEXTBOX_STATE_NORMAL 0
-#define TEXTBOX_STATE_HOVER 1
-#define TEXTBOX_STATE_TYPING 2
+//#define TEXTBOX_STATE_HOVER 1
+//#define TEXTBOX_STATE_TYPING 2
+#define TEXTBOX_STATE_HIDDEN 3
 
 struct GUIButton {
     uint8_t weldToWindow;
@@ -35,6 +36,7 @@ struct GUITextBox {
     uint32_t numeric_value;
     char* string_value;
 
+    uint8_t weldToWindow;
     uint32_t localX;
     uint32_t localY;
     uint32_t width;
@@ -54,9 +56,11 @@ void drawButton(struct GUIButton* btn);
 void buttonCallback(struct GUIButton* btn);
 void setButtonState(struct GUIButton* btn, uint8_t state);
 
-struct GUITextBox* createTextBox();
+struct GUITextBox* createTextBox(uint8_t type, uint16_t capacity);
 void addTextBox(struct GUITextBox* textbox);
 void drawTextBox(struct GUITextBox* textbox);
+
+void redraw_ui_elements();
 
 uint32_t getWindowX(uint8_t type);
 uint32_t getWindowY(uint8_t type);
