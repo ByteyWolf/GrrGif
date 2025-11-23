@@ -1,0 +1,765 @@
+Open Watcom Linker Version 2.0beta1 Limited Availability
+Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
+Created on:       25/11/24 00:20:53
+Executable Image: grrgif.exe
+creating a Windows NT character-mode executable
+
+
+                        +------------+
+                        |   Groups   |
+                        +------------+
+
+Group                           Address              Size
+=====                           =======              ====
+
+.idata                          00410000             00000900
+DGROUP                          00411000             00012a40
+
+
+
+                        +--------------+
+                        |   Segments   |
+                        +--------------+
+
+Segment                Class          Group          Address         Size
+=======                =====          =====          =======         ====
+
+BEGTEXT                CODE           AUTO           00401000        00000007
+_TEXT                  CODE           AUTO           00401010        0000e9a3
+TRANSFER CODE          CODE           AUTO           0040f9b4        000001f8
+.idata                 .idata         .idata         00410000        00000900
+_NULL                  BEGDATA        DGROUP         00411000        00000004
+_AFTERNULL             BEGDATA        DGROUP         00411004        00000000
+CONST                  DATA           DGROUP         00411004        000003dc
+CONST2                 DATA           DGROUP         004113e0        0000000c
+_DATA                  DATA           DGROUP         004113f0        00000ffc
+XIB                    DATA           DGROUP         004123ec        00000000
+XI                     DATA           DGROUP         004123ec        0000002a
+XIE                    DATA           DGROUP         00412416        00000000
+YIB                    DATA           DGROUP         00412416        00000000
+YI                     DATA           DGROUP         00412416        00000024
+YIE                    DATA           DGROUP         0041243a        00000000
+TIB                    DATA           DGROUP         0041243a        00000000
+TI                     DATA           DGROUP         0041243a        00000000
+TIE                    DATA           DGROUP         0041243a        00000000
+DATA                   DATA           DGROUP         0041243a        00000000
+_BSS                   BSS            DGROUP         00413000        00000a40
+STACK                  STACK          DGROUP         00413a40        00010000
+
+
+                        +----------------+
+                        |   Memory Map   |
+                        +----------------+
+
+* = unreferenced symbol
++ = symbol only referenced locally
+
+Address        Symbol
+=======        ======
+
+Module: debug.obj(C:\LocalProjects\GrrGif\debug.c)
+00401010+      debug_set_color_
+00401074       debugf_
+004113e0+      _debug_threshold
+004113f0+      _debug_tags
+Module: decoder.obj(C:\LocalProjects\GrrGif\gif\decoder.c)
+0040254c       parse_
+004028ac       draw_imageV2_
+Module: encoder.obj(C:\LocalProjects\GrrGif\gif\encoder.c)
+00402af0*      export_gif_
+Module: graphics_win32.obj(C:\LocalProjects\GrrGif\graphics\graphics_win32.c)
+00411410       _wwidth
+00411414       _wheight
+0041141c+      _evt
+00402e94       init_graphics_
+004030bc       create_menu_
+0040310c       append_menu_
+00403144       append_menu_separator_
+00403178       finalize_menu_
+004031c4*      createEditBox_
+0040325c*      moveEditBox_
+004032a0*      setEditBoxVisible_
+004032ec       poll_event_
+00403374       set_font_size_
+00403420       draw_rect_
+004034e0*      clear_graphics_
+00403528       blit_rgb8888_
+004035cc       flush_graphics_
+00403634       close_graphics_
+004036c4       draw_text_
+00403768       draw_text_limited_
+004038c4       draw_text_bg_
+004039ac       draw_text_anchor_
+004039fc       set_cursor_
+00403a98       set_window_title_
+00403ac0       choose_file_
+00403b8c       choose_save_file_
+00403c88       messagebox_
+Module: gui_utility.obj(C:\LocalProjects\GrrGif\graphics\gui_utility.c)
+00403d00       getWindowX_
+00403d60       getWindowY_
+00403dc0       createButton_
+00403dec       createTextBox_
+00403e5c       addButton_
+00403ea0       addTextBox_
+00403ee0+      drawButton_
+00404014+      drawTextBox_
+0040415c       setButtonState_
+00404220       buttonCallback_
+00404288       redraw_ui_elements_
+004042e0       draw_rect_bound_
+00411824       _buttonBase
+00411828       _textBoxBase
+0041182c       _crtButtonHovering
+00411830       _crtButtonHeld
+00411834       _crtTextBoxTyping
+Module: lzwdecode.obj(C:\LocalProjects\GrrGif\lzw\lzwdecode.c)
+004044d0       lzw_init_
+00404784       lzw_feed_
+Module: main.obj(C:\LocalProjects\GrrGif\main.c)
+00404af0       shrink_rect_
+00404b30+      hoverLogic_
+00404bf4+      renderUI_
+00404e28+      _BackgroundThread@4
+00404e4c+      scheduleRendering_
+00404e9c+      insertTrack_
+00404fc0       main_
+004113e4+      _COLOR_WHITE
+004113e8       _COLOR_GRAY
+00411838       _pendingRedraw
+00411839+      _eligibleToDragBorder
+0041183a+      _draggingWindowBorder
+0041183c+      _initialPos
+00411840       _mouseDown
+Module: modules.obj(C:\LocalProjects\GrrGif\modules.c)
+00411844       _windows
+Module: mod_preview.obj(C:\LocalProjects\GrrGif\modules\mod_preview.c)
+004055c0+      alloc_preview_
+0040565c+      fit_aspect_ratio_
+0040574c+      draw_canvas_rect_
+00405918       preview_draw_
+00405dd4*      convertMouseXtoCanvasX_
+00405e28*      convertMouseYtoCanvasY_
+00405e7c+      getHoveringObj_
+00406040       preview_handle_event_
+00411b68+      _pixelPreview
+00411b6c       _selectedObj
+00411b70+      _objOnThisFrameCount
+00411b74+      _canvas_x
+00411b78+      _canvas_y
+00411b7c+      _canvas_width
+00411b80+      _canvas_height
+00411b84+      _lastMouseDragX
+00411b88+      _lastMouseDragY
+00411b8c       _refreshFrameCache
+00413084+      _rendering
+0041309c+      _objOnThisFrame
+0041319c+      _previewWidth
+004131a0+      _previewHeight
+Module: mod_properties.obj(C:\LocalProjects\GrrGif\modules\mod_properties.c)
+00406200+      reset_rect_
+00406250+      step_rect_
+004062a4+      draw_file_
+004063d8+      draw_object_
+0040672c       properties_draw_
+Module: mod_timeline.obj(C:\LocalProjects\GrrGif\modules\mod_timeline.c)
+004067e0+      doInvert_
+00406824+      check_overlap_
+004068c4+      calculate_bounds_
+00406a50+      remove_from_track_
+00406b1c+      insert_into_track_
+00406c28       timeline_draw_
+0040739c       timeline_scroll_
+004073e8+      get_mouse_data_
+004074a8+      get_bounds_data_
+00407560       timeline_handle_event_
+Module: projectformat.obj(C:\LocalProjects\GrrGif\projectformat.c)
+00407890       saveProject_
+00407b8c       loadProject_
+Module: timeline.obj(C:\LocalProjects\GrrGif\timeline\timeline.c)
+00408200+      current_time_ms_
+00408274       findLoadedFile_
+004082e8+      insertTimelineObj_
+00408528       timeline_heartbeat_
+004085ec       insertTimelineObjFree_
+00411d00       _tracks
+00411d90       _crtTimelineMs
+00411d94       _timelineLengthMs
+00411d98       _previewPlaying
+00411d9c       _fileWidthPx
+00411da0       _fileHeightPx
+00411da8+      _lastTimelineEpoch
+004131b8+      _timelineMaxMs
+004131bc+      _timelineObjects
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(iob.c)
+00411db0       ___iob
+004131c0       ___ClosedStreams
+004131c4       ___OpenStreams
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(fputc.c)
+00408690       fputc_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(printf.c)
+00408770       printf_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(vprintf.c)
+004087a0       vprintf_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(fread.c)
+004087c0       fread_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(fseek.c)
+004089f0       fseek_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(nmalloc.c)
+00408b00       _nmalloc_
+00408b00       malloc_
+00411fb8       ___nheapbeg
+00411fbc       ___MiniHeapRover
+00411fc0       ___LargestSizeB4MiniHeapRover
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(nfree.c)
+00408c00       _nfree_
+00408c00       free_
+004131c8       ___MiniHeapFreeRover
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(nrealloc.c)
+00408d10*      _nrealloc_
+00408d10       realloc_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(memcpy.c)
+00408d90       memcpy_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(calloc.c)
+00408db0       calloc_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(memset.c)
+00408dd0       memset_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(fopen.c)
+00408df0+      __open_flags_
+00409000+      _fsopen_
+00409050       fopen_
+004090e0*      freopen_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(perror.c)
+00409160       perror_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(memcmp.c)
+004091b0       memcmp_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(fclose.c)
+004091d0       __doclose_
+00409270       __shutdown_stream_
+00409290       fclose_
+004131cc+      ___RmTmpFileFn
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386\math387r.lib(fchop87)
+004092d4       __CHP
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\emu387.lib(386)
+004092ec       __init_387_emulator
+004092ed*      __fini_387_emulator
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(_8087)
+00411fc4       __8087
+00411fc5       __real87
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(fwrite.c)
+004092f0       fwrite_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(strlen.c)
+00409500       strlen_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(snprintf.c)
+00409560+      vsnprintf_
+004095c0       snprintf_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(atoi.c)
+004095f0       atoi_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(fprintf.c)
+00409640       fprintf_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(cstrtwnt)
+00409662       _cstart_
+00409662*      mainCRTStartup
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(argcv.c)
+004131d0       __argv
+004131d4       __argc
+004131d8       ___argc
+004131dc       ___argv
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(_icstrdu.asm)
+004096c0       strdup_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(i8s)
+004096c8*      __U8RS
+004096e2*      __I8RS
+004096fd*      __I8LS
+004096fd       __U8LS
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(i8d)
+00409718*      __I8D
+0040976d       __U8D
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(_strcmp)
+00409800       strcmp_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(initfile.c)
+00409970       __InitFiles_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(ioexit.c)
+00409a70*      fcloseall_
+00409a80       __full_io_exit_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mainwnt.c)
+00411fc8*      ___TlsIndex
+00411fcc+      ___FirstThreadData
+00411fd0       ___GetThreadPtr
+00411fd4       __AccessFileH
+00411fd8       __ReleaseFileH
+00411fdc       __AccessIOB
+00411fe0       __ReleaseIOB
+00411fe4       __AccessNHeap
+00411fe8*      __AccessFHeap
+00411fec       __ReleaseNHeap
+00409aa0*      __threadid_
+00409ac0+      __sig_null_rtn_
+00409ad0+      __NTInit_
+00409cb0+      __NTFini_
+00409d10       __NTMainInit_
+00409d70       __exit_
+00411ff0*      __ReleaseFHeap
+00411ff4*      __AccessTDList
+00411ff8*      __ReleaseTDList
+00411ffc       __AccessFList
+00412000       __ReleaseFList
+00412004+      __ThreadExitRtn
+00412008       ___sig_init_rtn
+0041200c       ___sig_fini_rtn
+00412010       ___process_fini
+004131e8       ___Is_DLL
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(ioalloc.c)
+00409dc0       __ioalloc_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(flush.c)
+00409e60       __flush_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(seterrno.c)
+00409f5c       __set_errno_
+00409f6a*      __set_EDOM_
+00409f78*      __set_ERANGE_
+00409f86*      __set_EINVAL_
+00409f99       __set_doserrno_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(fprtf.c)
+00409fd0       __fprtf_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(qread.c)
+0040a090       __qread_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(fgetc.c)
+0040a100       __fill_buffer_
+0040a200*      fgetc_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(lseek.c)
+0040a2c0       lseek_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(tell.c)
+0040a310       tell_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(nmemneed.c)
+0040a330       __nmemneed_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mem.c)
+0040a340       __MemAllocator
+0040a3f0       __MemFree
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(grownear.c)
+0040a690       __ExpandDGROUP_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(nmsize.c)
+0040a6b0       _nmsize_
+0040a6b0*      _msize_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(nexpand.c)
+0040a6c0       _nexpand_
+0040a6c0*      _expand_
+0040a700+      __HeapManager_expand_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(__stos)
+0040a8d0       __STOSB
+0040a907*      __STOSD
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(comtflag.c)
+0040a980*      __set_commode_
+00412014       __commode
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(txtmode.c)
+00412018       __fmode
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(tolower.c)
+0040a990       tolower_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(openwnt.c)
+0040aba0*      open_
+0040abc0       sopen_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(chktty.c)
+0040abf0       __chktty_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(freefp.c)
+0040ac30       __freefp_
+0040ac80       __purgefp_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(allocfp.c)
+0040acb0       __allocfp_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(fputs.c)
+0040ad80       fputs_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(strerror.c)
+0040b140       strerror_
+0040b160*      _strerror_
+0040b230*      _doserror_
+0041201c+      __sys_errlist
+004120c0+      __sys_nerr
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(__lseek.c)
+0040b260       __lseek_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(_clsewnt.c)
+0040b2a0       __close_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(chk8087.c)
+0040b320*      _fpreset_
+0040b360       __chk8087_
+0040b370*      __init_8087_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(crwdata)
+00412106       __osmajor
+00412107       __osminor
+00412108       __osbuild
+0041210a       __osver
+0041210e       __winmajor
+00412112       __winminor
+00412116       __winver
+004120d4       __LpDllName
+004120d8       __LpwCmdLine
+004120dc       __LpwPgmName
+004120e0       __LpwDllName
+004120cc       __LpCmdLine
+004120d0       __LpPgmName
+004120c4*      __dynend
+004120c8       __curbrk
+004120e4*      __STACKLOW
+004120e8       __STACKTOP
+004120ec       __ASTACKSIZ
+004120f0       __ASTACKPTR
+004120f4       __cbyte
+004120f8*      __cbyte2
+004120fc*      __child
+00412102       __Envptr
+00412100       __no87
+0041211a       ___FPE_handler
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(qwrit.c)
+0040b390       __qwrite_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(prtf.c)
+0040b470       __prtf_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(istable.c)
+0040c140       __IsTable
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(main2wnt.c)
+0040c250       __NTMain
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(segdefns)
+00401003       ___begtext
+00411000*      __nullarea
+004123ec       __Start_XI
+00412416       __End_XI
+00412416       __Start_YI
+0041243a       __End_YI
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(initargv.c)
+0040c2b0       __Init_Argv_
+0040c300+      _getargv_
+0040c4a0       __Fini_Argv_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(strdup.c)
+0040c4b0       __clib_strdup_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(xmsgwnt.c)
+0040c4f0+      __exit_with_msg_
+0040c550       __fatal_runtime_error_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(hdlman.c)
+00412120+      ___NHandles
+00412124+      ___OSHandles
+00412128+      ___FakeHandles
+0040c570+      __growPOSIXHandles_
+0040c610       __allocPOSIXHandle_
+0040c6d0       __freePOSIXHandle_
+0040c6f0       __getOSHandle_
+0040c700       __setOSHandle_
+0040c750+      __NTGetFakeHandle_
+0040c7c0       __initPOSIXHandles_
+0040c8a0*      __set_handles_
+0040c8b0*      _grow_handles_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(environ.c)
+00413908       ___env_mask
+0041390c       __wenviron
+00413910       _environ
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(getmodfn.c)
+0040c8f0       __lib_GetModuleFileNameW_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(ustrdup.c)
+0040c981       __clib_wcsdup_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(excptwnt.c)
+0040d010+      ___ReportException@4
+0040d460       __DefaultExceptionHandler_
+0040d4a0+      ___ExceptionFilter
+0040d6b0       __NewExceptionFilter_
+0040d6e0       __DoneExceptionFilter_
+00412134       ___oscode_check_func
+00412138       ___raise_func
+00413914*      _sw
+00413918+      ___ExceptionHandled
+00413919+      ___ReportInvoked
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(stklmwnt.c)
+0040d720       __init_stack_limits_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(initrtns.c)
+0040d7a0       __InitRtns
+0040d7f0       __FiniRtns
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(fsync.c)
+0040d850       fsync_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(iomode.c)
+0040d8a0       __GetIOMode_
+0040d8c0       __SetIOMode_nogrow_
+00412150       ___NFiles
+00412154       ___init_mode
+004121a4       ___io_mode
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(dosret.c)
+0040d8e0*      _dosretax_
+0040d8f0*      _dosret0_
+0040d900       __set_errno_dos_
+0040d930*      __set_errno_dos_reterr_
+0040d940       __set_errno_nt_
+0040d950*      __set_errno_nt_reterr_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(flushall.c)
+0040d970       __flushall_
+0040d9b0*      flushall_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(gtchewnt.c)
+0040d9c0       getche_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(stiomode.c)
+0040d9f0       __grow_iomode_
+0040dac0+      __shrink_iomode_
+0040db00       __SetIOMode_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(amblksiz.c)
+004122ac       __amblksiz
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(heapen.c)
+0040db70*      _heapenable_
+004122b0       ___heap_enabled
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(nheapmin.c)
+0040dba0       _nheapshrink_
+0040dba0*      _nheapmin_
+0040dba0*      _heapmin_
+0040dba0*      _heapshrink_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(ntfio.c)
+0040dc90*      __GetNTCreateAttr_
+0040dcd0       __GetNTAccessAttr_
+0040dd00       __GetNTShareAttr_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(umaskval.c)
+004122b4       ___umaskval
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(isattwnt.c)
+0040dd60       isatty_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(strncpy.c)
+0040dd80       strncpy_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(8087cw.c)
+004122b8       __8087cw
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(save8087.c)
+004122bc       ___Save8087
+004122c0       ___Rest8087
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(init8087)
+0040ddc4       __x87id
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(wctomb.c)
+0040de00       wctomb_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(itoa.c)
+0040de40+      utoa_
+0040de90       itoa_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(strupr.c)
+0040dec0       strupr_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(noefgfmt.c)
+004122c4       ___EFG_printf
+004122c8*      ___EFG_scanf
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(lltoa.c)
+0040df30       ulltoa_
+0040dfa0*      lltoa_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(ltoa.c)
+0040dfd0       ultoa_
+0040e020*      ltoa_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbisdbcs.c)
+004122cc       ___IsDBCS
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbislead.c)
+0040e050*      _ismbblead_
+00413920       ___MBCSIsTable
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mthrdini.c)
+0040e070       __InitThreadData_
+004122d0       ___ThreadDataSize
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(cmain386.c)
+0040e0a0       __CMain
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(dosseg)
+00001234       __DOSseg__
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(histsplt.c)
+00413a24       ___historical_splitparms
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(___argc.c)
+00413a28       ____Argc
+00413a2c       ____Argv
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(enterdb.c)
+0040e0e0       __EnterWVIDEO_
+004122d4+      ___WD_Present
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(setenvp.c)
+0040e110       __setenvp_
+0040e1d0       __freeenvp_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(ustrlen.c)
+0040e21d       wcslen_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(conutwnt.c)
+0040e240       __NTRealKey_
+0040e2f0       __NTConsoleInput_
+0040e300       __NTConsoleOutput_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(fclex387.c)
+0040e310       _ClearFPE_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(signlwnt.c)
+004122e0+      __SignalTable
+0040e320+      __SetSignalFunc_
+0040e370+      __GetSignalFunc_
+0040e3a0+      __GetSignalOSCode_
+0040e3d0+      __CheckSignalExCode_
+0040e510+      __sigabort_
+0040e520       __sigfpe_handler_
+0040e570*      signal_
+0040e600+      raise_
+0040e670+      __SigInit_
+0040e6c0+      __SigFini_
+0040e700+      __sig_init_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(getchwnt.c)
+0040e820       getch_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(putchwnt.c)
+0040e890       putch_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(iomodtty.c)
+0040e8e0       __ChkTTYIOMode_
+0040e920*      __IOMode_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbinit.c)
+0040e96b       __mbinit_
+00412350       ___MBCodePage
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(alphabet.c)
+004113b8       ___Alphabet
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(cinit.c)
+0040ea60       __CommonInit_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(exit.c)
+0040ea61+      __null_int23_exit_
+0040ea62       exit_
+0040eab2*      _exit_
+00412354+      ___int23_exit
+00412358+      ___FPE_handler_exit
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(dofilstr.c)
+0040eaf0       __ParsePosixHandleStr_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(clearenv.c)
+0040ec10       clearenv_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(abort.c)
+0040ecb5*      abort_
+0040ecc7       __terminate_
+0041235c       ___abort
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(getenv.c)
+0040ece0       getenv_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(strtol.c)
+0040efa0*      strtoul_
+0040efb0       strtol_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(putenv.c)
+0040efc0       putenv_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbterm.c)
+0040f160       _mbterm_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbsnextc.c)
+0040f1a0       _mbsnextc_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbcupper.c)
+0040f1e0       _mbctoupper_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbsinc.c)
+0040f210       _mbsinc_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbschr.c)
+0040f240       _mbschr_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbslen.c)
+0040f2a0       _mbslen_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(_putenv.c)
+0040f2d0       __putenv_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbstowcs.c)
+0040f360       mbstowcs_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(_uputenv.c)
+0040f3e0       __wputenv_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbconv.c)
+0040f450       _mbvtop_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbclen.c)
+0040f470       _mbclen_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbccmp.c)
+0040f4a0       _mbccmp_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(_findenv.c)
+0040f640       __findenv_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(mbtowc.c)
+0040f760       mbtowc_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(_ufinden.c)
+0040f8b0       __wfindenv_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(memmove.c)
+0040f950       memmove_
+Module: C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib(utoupper.c)
+0040f9a3       towupper_
+
+
+                        +----------------------+
+                        |   Imported Symbols   |
+                        +----------------------+
+
+Symbol                              Module
+======                              ======
+
+_GetStdHandle@4                     KERNEL32.DLL
+_SetConsoleTextAttribute@8          KERNEL32.DLL
+_DeleteObject@4                     GDI32.DLL
+_CreateCompatibleBitmap@12          GDI32.DLL
+_SelectObject@8                     GDI32.DLL
+_PostQuitMessage@4                  USER32.DLL
+_DefWindowProcA@16                  USER32.DLL
+_GetModuleHandleA@4                 KERNEL32.DLL
+_LoadCursorA@8                      USER32.DLL
+_GetStockObject@4                   GDI32.DLL
+_RegisterClassA@4                   USER32.DLL
+_AdjustWindowRect@12                USER32.DLL
+_CreateWindowExA@48                 USER32.DLL
+_CreateMenu@0                       USER32.DLL
+_GetDC@4                            USER32.DLL
+_CreateCompatibleDC@4               GDI32.DLL
+_CreateFontA@56                     GDI32.DLL
+_ShowWindow@8                       USER32.DLL
+_UpdateWindow@4                     USER32.DLL
+_AppendMenuA@16                     USER32.DLL
+_SetMenu@8                          USER32.DLL
+_MoveWindow@24                      USER32.DLL
+_PeekMessageA@20                    USER32.DLL
+_TranslateMessage@4                 USER32.DLL
+_DispatchMessageA@4                 USER32.DLL
+_Sleep@4                            KERNEL32.DLL
+_CreateSolidBrush@4                 GDI32.DLL
+_FillRect@12                        USER32.DLL
+_SetDIBitsToDevice@48               GDI32.DLL
+_BitBlt@36                          GDI32.DLL
+_DeleteDC@4                         GDI32.DLL
+_ReleaseDC@8                        USER32.DLL
+_DestroyWindow@4                    USER32.DLL
+_SetTextColor@8                     GDI32.DLL
+_SetBkMode@8                        GDI32.DLL
+_TextOutA@20                        GDI32.DLL
+_GetTextExtentPoint32A@16           GDI32.DLL
+_SetCursor@4                        USER32.DLL
+_SetWindowTextA@8                   USER32.DLL
+_GetOpenFileNameA@4                 COMDLG32.DLL
+_GetSaveFileNameA@4                 COMDLG32.DLL
+_MessageBoxA@16                     USER32.DLL
+_CreateThread@24                    KERNEL32.DLL
+_CloseHandle@4                      KERNEL32.DLL
+_LeaveCriticalSection@4             KERNEL32.DLL
+_GetSystemTimeAsFileTime@4          KERNEL32.DLL
+_GetEnvironmentStrings@0            KERNEL32.DLL
+_GetVersion@0                       KERNEL32.DLL
+_GetModuleFileNameA@12              KERNEL32.DLL
+_GetCommandLineA@0                  KERNEL32.DLL
+_GetCommandLineW@0                  KERNEL32.DLL
+_FreeEnvironmentStringsA@4          KERNEL32.DLL
+_ExitProcess@4                      KERNEL32.DLL
+_ReadFile@20                        KERNEL32.DLL
+_GetLastError@0                     KERNEL32.DLL
+_VirtualAlloc@16                    KERNEL32.DLL
+_CreateFileA@28                     KERNEL32.DLL
+_FormatMessageA@28                  KERNEL32.DLL
+_SetFilePointer@16                  KERNEL32.DLL
+_WriteFile@20                       KERNEL32.DLL
+_SetStdHandle@8                     KERNEL32.DLL
+_CreateEventA@16                    KERNEL32.DLL
+_GetModuleFileNameW@12              KERNEL32.DLL
+_MultiByteToWideChar@24             KERNEL32.DLL
+_LoadLibraryA@4                     KERNEL32.DLL
+_GetProcAddress@8                   KERNEL32.DLL
+_SetUnhandledExceptionFilter@4      KERNEL32.DLL
+_UnhandledExceptionFilter@4         KERNEL32.DLL
+_VirtualQuery@12                    KERNEL32.DLL
+_FlushFileBuffers@4                 KERNEL32.DLL
+_VirtualFree@12                     KERNEL32.DLL
+_GetFileType@4                      KERNEL32.DLL
+_WideCharToMultiByte@32             KERNEL32.DLL
+_GetCurrentThreadId@0               KERNEL32.DLL
+_SetConsoleCtrlHandler@8            KERNEL32.DLL
+_ReadConsoleInputA@16               KERNEL32.DLL
+_GetConsoleMode@8                   KERNEL32.DLL
+_SetConsoleMode@8                   KERNEL32.DLL
+_WriteConsoleA@20                   KERNEL32.DLL
+_GetACP@0                           KERNEL32.DLL
+_GetOEMCP@0                         KERNEL32.DLL
+_GetCPInfo@8                        KERNEL32.DLL
+_SetEnvironmentVariableA@8          KERNEL32.DLL
+_CharUpperA@4                       USER32.DLL
+
+
+                        +--------------------+
+                        |   Libraries Used   |
+                        +--------------------+
+
+C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\kernel32.lib
+C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\user32.lib
+C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\gdi32.lib
+C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\comdlg32.lib
+C:\OpenWatcom\ow_portable_v2_stable/lib386\math387r.lib
+C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\emu387.lib
+C:\OpenWatcom\ow_portable_v2_stable/lib386/nt\clib3r.lib
+
+
+                        +-----------------------+
+                        |   Linker Statistics   |
+                        +-----------------------+
+
+Stack size:  00010000 (65536.)
+Memory size:  00021eec (138988.)
+Entry point address: 00409662
+Link time: 00:00.09

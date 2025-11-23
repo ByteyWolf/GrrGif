@@ -23,6 +23,9 @@ static HMENU menuSlot[256] = {0};
 static uint8_t menuSlots = 0;
 static HMENU hMenu;
 
+static HWND editBoxes[32];
+static uint8_t editBoxesMade = 0;
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
     switch (msg) {
@@ -211,6 +214,29 @@ void append_menu_separator(uint8_t handle) {
 void finalize_menu(uint8_t handle, char* name) {
     AppendMenu(hMenu, MF_POPUP, (UINT_PTR)menuSlot[handle], name);
     SetMenu(hwnd, hMenu);
+}
+
+uint8_t createEditBox() {
+    if (editBoxesMade > 31) return 0xFF;
+    editBoxes[editBoxesMade] = CreateWindowEx(0, "EDIT", "",
+                                WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT,
+                                0, 0, 100, 100,
+                                hwnd, NULL, GetModuleHandle(NULL), NULL);
+    ShowWindow(editBoxes[editBoxesMade], SW_HIDE);
+    editBoxesMade++;
+    return editBoxesMade-1;
+}
+
+void moveEditBox(uint8_t handle, int x, int y, int width, int height) {
+    MoveWindow(editBoxes[handle], x, y, width, height, TRUE);
+}
+
+void setEditBoxVisible(uint8_t handle, uint8_t visible) {
+    if (visible) {
+        ShowWindow(editBoxes[handle], SW_SHOW);
+        return;
+    }
+    ShowWindow(editBoxes[handle], SW_HIDE);
 }
 
 int poll_event() {

@@ -1,0 +1,143 @@
+!define BLANK ""
+C:\LocalProjects\GrrGif\build\debug.obj : C:\LocalProjects\GrrGif\debug.c .A&
+UTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\debug.c -i="C:\OpenWatcom\ow_portable_v2_stable/h;C:\OpenWatcom\&
+ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -ol -ol+ -oc -oi &
+-oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\decoder.obj : C:\LocalProjects\GrrGif\gif\deco&
+der.c .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\gif\decoder.c -i="C:\OpenWatcom\ow_portable_v2_stable/h;C:\OpenW&
+atcom\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -ol -ol+ -o&
+c -oi -oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\encoder.obj : C:\LocalProjects\GrrGif\gif\enco&
+der.c .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\gif\encoder.c -i="C:\OpenWatcom\ow_portable_v2_stable/h;C:\OpenW&
+atcom\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -ol -ol+ -o&
+c -oi -oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\graphics_win32.obj : C:\LocalProjects\GrrGif\g&
+raphics\graphics_win32.c .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\graphics\graphics_win32.c -i="C:\OpenWatcom\ow_portable_v2_stabl&
+e/h;C:\OpenWatcom\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob&
+ -ol -ol+ -oc -oi -oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\gui_utility.obj : C:\LocalProjects\GrrGif\grap&
+hics\gui_utility.c .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\graphics\gui_utility.c -i="C:\OpenWatcom\ow_portable_v2_stable/h&
+;C:\OpenWatcom\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -o&
+l -ol+ -oc -oi -oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\lzwdecode.obj : C:\LocalProjects\GrrGif\lzw\lz&
+wdecode.c .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\lzw\lzwdecode.c -i="C:\OpenWatcom\ow_portable_v2_stable/h;C:\Ope&
+nWatcom\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -ol -ol+ &
+-oc -oi -oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\main.obj : C:\LocalProjects\GrrGif\main.c .AUT&
+ODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\main.c -i="C:\OpenWatcom\ow_portable_v2_stable/h;C:\OpenWatcom\o&
+w_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -ol -ol+ -oc -oi -&
+oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\modules.obj : C:\LocalProjects\GrrGif\modules.&
+c .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\modules.c -i="C:\OpenWatcom\ow_portable_v2_stable/h;C:\OpenWatco&
+m\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -ol -ol+ -oc -o&
+i -oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\mod_preview.obj : C:\LocalProjects\GrrGif\modu&
+les\mod_preview.c .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\modules\mod_preview.c -i="C:\OpenWatcom\ow_portable_v2_stable/h;&
+C:\OpenWatcom\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -ol&
+ -ol+ -oc -oi -oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\mod_properties.obj : C:\LocalProjects\GrrGif\m&
+odules\mod_properties.c .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\modules\mod_properties.c -i="C:\OpenWatcom\ow_portable_v2_stable&
+/h;C:\OpenWatcom\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob &
+-ol -ol+ -oc -oi -oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\mod_timeline.obj : C:\LocalProjects\GrrGif\mod&
+ules\mod_timeline.c .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\modules\mod_timeline.c -i="C:\OpenWatcom\ow_portable_v2_stable/h&
+;C:\OpenWatcom\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -o&
+l -ol+ -oc -oi -oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\projectformat.obj : C:\LocalProjects\GrrGif\pr&
+ojectformat.c .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\projectformat.c -i="C:\OpenWatcom\ow_portable_v2_stable/h;C:\Ope&
+nWatcom\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -ol -ol+ &
+-oc -oi -oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\timeline.obj : C:\LocalProjects\GrrGif\timelin&
+e\timeline.c .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\timeline\timeline.c -i="C:\OpenWatcom\ow_portable_v2_stable/h;C:&
+\OpenWatcom\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -ol -&
+ol+ -oc -oi -oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
+C:\LocalProjects\GrrGif\build\program.res : C:\LocalProjects\GrrGif\resource&
+s\program.rc .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wrc ..\resources\program.rc -bt=nt -dWIN32 -d_WIN32 -d__NT__ -i="$[:;C:\Op&
+enWatcom\ow_portable_v2_stable/h;C:\OpenWatcom\ow_portable_v2_stable/h/nt" -&
+q -ad -r -fo=program.res
+
+C:\LocalProjects\GrrGif\build\grrgif.exe : C:\LocalProjects\GrrGif\build\deb&
+ug.obj C:\LocalProjects\GrrGif\build\decoder.obj C:\LocalProjects\GrrGif\bui&
+ld\encoder.obj C:\LocalProjects\GrrGif\build\graphics_win32.obj C:\LocalProj&
+ects\GrrGif\build\gui_utility.obj C:\LocalProjects\GrrGif\build\lzwdecode.ob&
+j C:\LocalProjects\GrrGif\build\main.obj C:\LocalProjects\GrrGif\build\modul&
+es.obj C:\LocalProjects\GrrGif\build\mod_preview.obj C:\LocalProjects\GrrGif&
+\build\mod_properties.obj C:\LocalProjects\GrrGif\build\mod_timeline.obj C:\&
+LocalProjects\GrrGif\build\projectformat.obj C:\LocalProjects\GrrGif\build\t&
+imeline.obj C:\LocalProjects\GrrGif\debug.h C:\LocalProjects\GrrGif\gif\gif.&
+h C:\LocalProjects\GrrGif\graphics\graphics.h C:\LocalProjects\GrrGif\graphi&
+cs\gui_utility.h C:\LocalProjects\GrrGif\image32.h C:\LocalProjects\GrrGif\l&
+ock.h C:\LocalProjects\GrrGif\lzw\lzw.h C:\LocalProjects\GrrGif\modules.h C:&
+\LocalProjects\GrrGif\projectformat.h C:\LocalProjects\GrrGif\stdint.h C:\Lo&
+calProjects\GrrGif\timeline\timeline.h C:\LocalProjects\GrrGif\build\program&
+.res .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ @%write grrgif.lk1 FIL debug.obj,decoder.obj,encoder.obj,graphics_win32.obj&
+,gui_utility.obj,lzwdecode.obj,main.obj,modules.obj,mod_preview.obj,mod_prop&
+erties.obj,mod_timeline.obj,projectformat.obj,timeline.obj
+ @%append grrgif.lk1 
+!ifneq BLANK ""
+ *wlib -q -n -b grrgif.imp 
+ @%append grrgif.lk1 LIBR grrgif.imp
+!endif
+!ifneq BLANK "program.res"
+ @%append grrgif.lk1 RES program.res
+!endif
+ *wlink name grrgif d all sys nt op m op maxe=25 op q op symf @grrgif.lk1
+

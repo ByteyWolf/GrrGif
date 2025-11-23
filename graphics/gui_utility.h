@@ -31,6 +31,8 @@ struct GUIButton {
     struct GUIButton* nextButton;
 };
 
+
+// todo: maybe we can just spawn a native windows box when user input needed
 struct GUITextBox {
     uint8_t type;
     uint32_t numeric_value;
@@ -46,6 +48,7 @@ struct GUITextBox {
     uint8_t dirty;
 
     uint16_t capacity;
+    uint32_t crtCursorPos;
 
     struct GUITextBox* nextTextBox;
 };

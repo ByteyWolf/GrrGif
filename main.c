@@ -288,6 +288,7 @@ int main(int argc, char *argv[]) {
                             crtTextBoxTyping = crtBox;
                             break;
                         }
+                        crtBox = crtBox->nextTextBox;
                     }
                     
                     break;

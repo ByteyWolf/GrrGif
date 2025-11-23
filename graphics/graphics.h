@@ -12,7 +12,7 @@ typedef struct Event {
     uint8_t pending;
     int x;
     int y;
-    int key;
+    char key;
     int width;
     int height;
     int scrollDelta;
@@ -74,6 +74,9 @@ void append_menu(uint8_t handle, char* name, uint32_t code);
 void append_menu_separator(uint8_t handle);
 void finalize_menu(uint8_t handle, char* name);
 
+uint8_t createEditBox();
+void moveEditBox(uint8_t handle, int x, int y, int width, int height);
+void setEditBoxVisible(uint8_t handle, uint8_t visible);
 
 int draw_text(const char *text, int x, int y, uint32_t color);
 int draw_text_anchor(char *text, int x, int y, uint32_t color, uint8_t anchor);

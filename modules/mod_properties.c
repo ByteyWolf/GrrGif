@@ -101,7 +101,7 @@ void draw_object(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
 }
 
 void properties_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
-    if (!testBox) {testBox = createTextBox(TEXTBOX_TYPE_INT32, 256); addTextBox(testBox);} 
+    if (!testBox) {testBox = createTextBox(TEXTBOX_TYPE_INT32, 256); testBox->width=50; testBox->height=20; testBox->localX=10; testBox->localY=200; addTextBox(testBox);} 
     
     set_font_size(FONT_SIZE_NORMAL);
     if (!selectedObj) draw_file(x, y, width, height); else draw_object(x, y, width, height);

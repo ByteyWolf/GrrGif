@@ -2,3 +2,6 @@
 *.o
 *.so
 Thumbs.db
+*.obj
+*.exe
+*.res
