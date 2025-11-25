@@ -20,8 +20,8 @@ typedef struct {
 typedef struct {
     uint32_t global_palette[256];
     uint32_t local_palette[256];
-    uint8_t gct_entries;
-    uint8_t lct_entries;
+    uint16_t gct_entries;
+    uint16_t lct_entries;
     
     uint32_t file_width;
     uint32_t file_height;
@@ -49,7 +49,7 @@ static void seek_through_blocks(FILE* fd) {
     }
 }
 
-static uint8_t process_palette(FILE* fd, uint8_t num_entries, uint32_t* palette)
+static uint8_t process_palette(FILE* fd, uint16_t num_entries, uint32_t* palette)
 {
     if (num_entries == 0) return 0;
 
@@ -226,6 +226,7 @@ static uint8_t handle_image_descriptor(gif_context_t* ctx) {
         ctx->lct_entries = 1 << ((img_packed & 0x7) + 1);
         if (!process_palette(ctx->fd, ctx->lct_entries, ctx->local_palette)) return 0;
     } else {
+        if (ctx->gct_entries == 0) return 0;
         memcpy(ctx->local_palette, ctx->global_palette, ctx->gct_entries * sizeof(uint32_t));
         ctx->lct_entries = ctx->gct_entries;
     }
@@ -321,7 +322,7 @@ struct imageV2* parse(const char *filename) {
 
     if (packed & 0x80) {
         ctx.gct_entries = 1 << ((packed & 0x7) + 1);
-        if (!process_palette(ctx.fd, ctx.gct_entries, ctx.global_palette))
+        if (ctx.gct_entries > 0 && !process_palette(ctx.fd, ctx.gct_entries, ctx.global_palette))
             FAIL_GIF
     } else { ctx.gct_entries = 0; }
 

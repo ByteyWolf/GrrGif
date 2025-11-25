@@ -352,21 +352,6 @@ int close_graphics() {
     return 1;
 }
 
-int draw_text(const char *text, int x, int y, uint32_t color) {
-    if (!memdc) return 0;
-
-    SetTextColor(memdc, RGB(
-        (color >> 16) & 0xFF,
-                            (color >> 8) & 0xFF,
-                            color & 0xFF
-    ));
-
-    SetBkMode(memdc, TRANSPARENT);
-    TextOut(memdc, x, y, text, strlen(text));
-
-    return 1;
-}
-
 int draw_text_limited(char *textraw, int x, int y, uint32_t color, uint8_t anchor, uint32_t max_width) {
     SIZE text_size;
     
@@ -436,6 +421,10 @@ int draw_text_bg(const char *text, int x, int y, uint32_t fg_color, uint32_t bg_
 
 int draw_text_anchor(char *text, int x, int y, uint32_t color, uint8_t anchor) {
     return draw_text_limited(text, x, y, color, anchor, 0);
+}
+
+int draw_text(char *text, int x, int y, uint32_t color) {
+    return draw_text_limited(text, x, y, color, ANCHOR_LEFT, 0);
 }
 
 void set_cursor(int type) {
@@ -509,3 +498,4 @@ int messagebox(char* title, char* body, int type) {
     }
     return MessageBox(NULL, body, title, icon);
 }
+

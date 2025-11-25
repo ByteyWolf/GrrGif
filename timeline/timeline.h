@@ -11,6 +11,10 @@
 
 #define MAX_TRACKS 9
 
+#define EXPORT_256COLORS 0
+#define EXPORT_FAST 1
+#define EXPORT_OPTIMIZED 2
+
 #include <stdint.h>
 
 struct LoadedFile {

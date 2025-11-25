@@ -18,6 +18,8 @@ uint8_t previewPlaying = 0;
 uint32_t fileWidthPx = 1200;
 uint32_t fileHeightPx = 600;
 
+uint8_t exportMode = EXPORT_OPTIMIZED;
+
 uint64_t lastTimelineEpoch = 0;
 
 extern uint8_t pendingRedraw;

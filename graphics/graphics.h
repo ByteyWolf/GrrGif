@@ -78,7 +78,7 @@ uint8_t createEditBox();
 void moveEditBox(uint8_t handle, int x, int y, int width, int height);
 void setEditBoxVisible(uint8_t handle, uint8_t visible);
 
-int draw_text(const char *text, int x, int y, uint32_t color);
+int draw_text(char *text, int x, int y, uint32_t color);
 int draw_text_anchor(char *text, int x, int y, uint32_t color, uint8_t anchor);
 int draw_text_bg(const char *text, int x, int y, uint32_t fg_color, uint32_t bg_color);
 int draw_text_limited(char *text, int x, int y, uint32_t color, uint8_t anchor, uint32_t max_width);
