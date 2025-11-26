@@ -74,7 +74,7 @@ void draw_canvas_rect(int x, int y, uint32_t width, uint32_t height, uint32_t co
     if (!pixelPreview) return;
     for (int crtx = x; crtx<x+width; crtx++) {
         for (int crty = y; crty<y+height; crty++) {
-            if ((crty*canvas_width+crtx)>=canvas_width*canvas_height-1) break;
+            if ((crty*previewWidth+crtx)>canvas_width*canvas_height-1) break;
             if (color > 0xFFFFFF) {
                 uint16_t alpha = (color >> 24) & 0xFF;
                 uint16_t rD = (color >> 16) & 0xFF;
@@ -98,6 +98,7 @@ void draw_canvas_rect(int x, int y, uint32_t width, uint32_t height, uint32_t co
 }
 
 void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+    if (width < 50 || width > 0xFFFF || height < 50 || height > 0xFFFFF) return;
     //mutex_lock(&rendering);
     uint32_t offset_x = 0;
     uint32_t offset_y = 0;

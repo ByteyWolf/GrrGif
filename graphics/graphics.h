@@ -74,9 +74,12 @@ void append_menu(uint8_t handle, char* name, uint32_t code);
 void append_menu_separator(uint8_t handle);
 void finalize_menu(uint8_t handle, char* name);
 
-uint8_t createEditBox();
+uint8_t createEditBox(uint32_t color);
 void moveEditBox(uint8_t handle, int x, int y, int width, int height);
 void setEditBoxVisible(uint8_t handle, uint8_t visible);
+void getEditBoxText(uint8_t handle, char* buffer, uint32_t length);
+void setEditBoxText(uint8_t handle, char* buffer);
+uint8_t boxIsFocused(uint8_t handle);
 
 int draw_text(char *text, int x, int y, uint32_t color);
 int draw_text_anchor(char *text, int x, int y, uint32_t color, uint8_t anchor);

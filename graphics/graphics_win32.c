@@ -49,6 +49,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             return 0;
 
         case WM_LBUTTONDOWN:
+            SetFocus(hwnd);
             evt->type = EVENT_MOUSEBUTTONDOWN;
             evt->x = LOWORD(lParam);
             evt->y = HIWORD(lParam);
@@ -104,6 +105,42 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             evt->type = EVENT_COMMAND;
             evt->command = LOWORD(wParam);
             return 0;
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+            
+            for (uint8_t crtBox = 0; crtBox<editBoxesMade; crtBox++) {
+                if (!IsWindowVisible(editBoxes[crtBox])) continue;
+                RECT rect;
+                GetWindowRect(editBoxes[crtBox], &rect);
+
+                POINT pt;
+                pt.x = rect.left;
+                pt.y = rect.top;
+                ScreenToClient(hwnd, &pt);
+                
+                HDC editDC = GetDC(editBoxes[crtBox]);
+                BitBlt(memdc, pt.x, pt.y, rect.right - rect.left, rect.bottom - rect.top, editDC, 0, 0, SRCCOPY);
+                ReleaseDC(editBoxes[crtBox], editDC);
+            }
+            
+            BitBlt(hdc, 0, 0, wwidth, wheight, memdc, 0, 0, SRCCOPY);
+            EndPaint(hwnd, &ps);
+            return 0; }
+        case WM_CTLCOLOREDIT: {
+            HDC hdcEdit = (HDC)wParam;
+            HWND hEdit = (HWND)lParam;
+            HBRUSH brush = (HBRUSH)GetWindowLongPtr(hEdit, GWLP_USERDATA);
+            LOGBRUSH lb;
+            COLORREF color = 0;
+            if (GetObject(brush, sizeof(LOGBRUSH), &lb) != 0) color = lb.lbColor; 
+
+            SetTextColor(hdcEdit, RGB(255,255,255));
+            SetBkColor(hdcEdit, color);
+
+            
+            return (LRESULT)brush;
+        }
     }
 
     return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -216,12 +253,14 @@ void finalize_menu(uint8_t handle, char* name) {
     SetMenu(hwnd, hMenu);
 }
 
-uint8_t createEditBox() {
+uint8_t createEditBox(uint32_t color) {
     if (editBoxesMade > 31) return 0xFF;
     editBoxes[editBoxesMade] = CreateWindowEx(0, "EDIT", "",
-                                WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT,
+                                WS_CHILD | WS_VISIBLE | ES_RIGHT,
                                 0, 0, 100, 100,
                                 hwnd, NULL, GetModuleHandle(NULL), NULL);
+    HBRUSH brush = CreateSolidBrush(color);
+    SetWindowLongPtr(editBoxes[editBoxesMade], GWLP_USERDATA, (LONG_PTR)brush);
     ShowWindow(editBoxes[editBoxesMade], SW_HIDE);
     editBoxesMade++;
     return editBoxesMade-1;
@@ -238,6 +277,18 @@ void setEditBoxVisible(uint8_t handle, uint8_t visible) {
     }
     ShowWindow(editBoxes[handle], SW_HIDE);
 }
+
+void getEditBoxText(uint8_t handle, char* buffer, uint32_t length) {
+    GetWindowText(editBoxes[handle], buffer, length);
+}
+
+void setEditBoxText(uint8_t handle, char* buffer) {
+    SetWindowText(editBoxes[handle], buffer);
+}
+uint8_t boxIsFocused(uint8_t handle) {
+    return GetFocus() == editBoxes[handle];
+}
+
 
 int poll_event() {
 
@@ -336,8 +387,8 @@ int blit_rgb8888(uint32_t *pixels, uint32_t width, uint32_t height, uint32_t x, 
 int flush_graphics() {
     if (!hdc || !memdc) return 0;
 
-    /* Copy from memory DC to screen DC */
-    BitBlt(hdc, 0, 0, wwidth, wheight, memdc, 0, 0, SRCCOPY);
+    InvalidateRect(hwnd, NULL, FALSE);
+    UpdateWindow(hwnd);
 
     return 1;
 }

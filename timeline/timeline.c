@@ -130,7 +130,7 @@ void insertTimelineObjFree(struct TimelineObject* obj) {
         while (crtTrack) {
             uint32_t trackL = crtTrack->timePosMs;
             uint32_t trackR = trackL + crtTrack->length;
-            if (trackL < crtTimelineMs && trackR > crtTimelineMs) break;
+            if (trackL <= crtTimelineMs && trackR > crtTimelineMs) break;
             crtTrack = crtTrack->nextObject;
         }
         if (!crtTrack) {

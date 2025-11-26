@@ -69,10 +69,10 @@ void hoverLogic(struct GUIButton* crtButton, Event* event) {
 }
 
 void renderUI() {
-    while (1) {
+    //while (1) {
         Sleep(10);
         timeline_heartbeat();
-        if (!pendingRedraw) continue;
+        if (!pendingRedraw) return; // continue;
         pendingRedraw = 0;
 
         windows[POSITION_BOTTOM].width = wwidth;
@@ -121,24 +121,8 @@ void renderUI() {
         redraw_ui_elements();
     
         flush_graphics();
-    }
+    //}
 }
-
-#ifdef _WIN32
-DWORD WINAPI BackgroundThread(LPVOID lpParam) {
-    renderUI();
-    return 0;
-}
-
-void scheduleRendering() {
-    HANDLE hThread;
-    DWORD dwThreadId;
-
-    hThread = CreateThread(NULL, 0, BackgroundThread, NULL, 0, &dwThreadId);
-    if (hThread == NULL) { printf("ERROR making bg thread!\n"); return;}
-    CloseHandle(hThread);
-}
-#endif
 
 void insertTrack(char* filename) {
     struct LoadedFile* metadata = findLoadedFile(filename);
@@ -201,8 +185,10 @@ int main(int argc, char *argv[]) {
     finalize_menu(menuTimeline, "Action");
     finalize_menu(menuHelp, "Help");
 
-    scheduleRendering();
+    //scheduleRendering();
     set_window_title("GrrGif");
+
+    messagebox("GrrGif", "GrrGif is work-in-progress software.\n\nYou **CANNOT** export GIFs yet.\n\nI am not responsible for any time wasted editing GIFs. Come back later and hopefully it'll be added!", MSGBOX_WARNING);
     
     while (running) {
 
@@ -327,6 +313,10 @@ int main(int argc, char *argv[]) {
                             free(filePath);
                             break;
                         }
+
+                        case COMMAND_FILE_EXPORT:
+                            messagebox("GrrGif", "This is not yet implemented!", MSGBOX_WARNING);
+                            break;
                             
                         case COMMAND_ACTION_ADDTRACK: {
                             char* filePath = choose_file(FILETYPE_GIF);
@@ -347,7 +337,7 @@ int main(int argc, char *argv[]) {
 
         //clear_graphics(0x000000);
         if (previewPlaying) preview_draw(wwidth - windows[POSITION_TOPRIGHT].width, 0, windows[POSITION_TOPRIGHT].width, windows[POSITION_TOPRIGHT].height);
-        //renderUI();
+        renderUI();
         
     }
 

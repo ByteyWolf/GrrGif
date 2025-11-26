@@ -151,6 +151,7 @@ void insert_into_track(struct TimelineObject* obj, uint8_t track) {
 }
 
 void timeline_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+    if (width < 50 || width > 0xFFFF || height < 50 || height > 0xFFFFF) return;
     Rect windowBounds;
     windowBounds.x = x + 7;
     windowBounds.y = y + 7;
