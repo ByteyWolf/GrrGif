@@ -167,7 +167,8 @@ void preview_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
                         uint32_t frameId = 0;
                         if (crtObj->metadata->type == FILE_ANIMATION) {
                             // todo: change the line below to add non-loop
-                            uint32_t relativeCrtMs = (crtTimelineMs - begin) % len;
+                            uint32_t imgDuration = crtObj->metadata->imagePtr->frames[crtObj->metadata->imagePtr->frame_count-1]->delay;
+                            uint32_t relativeCrtMs = (crtTimelineMs - begin) % imgDuration;
                             struct imageV2* imagePtr = crtObj->metadata->imagePtr;
                             // maybe binary search here would be better?
                             for (frameId = 0; frameId<imagePtr->frame_count-1; frameId++) {

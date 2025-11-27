@@ -21,8 +21,11 @@ static uint32_t rect_color = 0x333333;
 
 static uint8_t boxFileWidth = 0xFF;
 static uint8_t boxFileHeight = 0xFF;
+
 static uint8_t boxObjWidth = 0xFF;
 static uint8_t boxObjHeight = 0xFF;
+static uint8_t boxObjTimestamp = 0xFF;
+static uint8_t boxObjDuration = 0xFF;
 
 static struct GUIButton* buttonDeleteObj = 0;
 
@@ -43,6 +46,8 @@ void step_rect() {
 void draw_file(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     setEditBoxVisible(boxObjWidth, 0);
     setEditBoxVisible(boxObjHeight, 0);
+    setEditBoxVisible(boxObjTimestamp, 0);
+    setEditBoxVisible(boxObjDuration, 0);
     buttonDeleteObj->state = BUTTON_STATE_HIDDEN;
     
     draw_text("This project", x + 10, y + 40, 0xFFFFFF);
@@ -128,16 +133,20 @@ void draw_object(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
      
     draw_text_anchor("Timestamp", x + 10, rect.y - 19, 0xCCCCCC, ANCHOR_LEFT);
     snprintf(scratch_space, sizeof(scratch_space), "%u", selectedObj->timePosMs);
-    draw_text_anchor(scratch_space, x + width - 10, rect.y - 19, 0xCCCCCC, ANCHOR_RIGHT);
+    if (!boxIsFocused(boxObjTimestamp))    setEditBoxText(boxObjTimestamp, scratch_space);
+    moveEditBox(boxObjTimestamp, x + width - 100, rect.y - 18, 90, 18);
     
     step_rect();
      
     draw_text_anchor("Duration", x + 10, rect.y - 19, 0xCCCCCC, ANCHOR_LEFT);
     snprintf(scratch_space, sizeof(scratch_space), "%u", selectedObj->length);
-    draw_text_anchor(scratch_space, x + width - 10, rect.y - 19, 0xCCCCCC, ANCHOR_RIGHT);
+    if (!boxIsFocused(boxObjDuration))    setEditBoxText(boxObjDuration, scratch_space);
+    moveEditBox(boxObjDuration, x + width - 100, rect.y - 18, 90, 18);
 
     setEditBoxVisible(boxObjWidth, 1);
     setEditBoxVisible(boxObjHeight, 1);
+    setEditBoxVisible(boxObjTimestamp, 1);
+    setEditBoxVisible(boxObjDuration, 1);
 
     // update stuff
     getEditBoxText(boxObjWidth, scratch_space, sizeof(scratch_space));
@@ -147,6 +156,14 @@ void draw_object(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     getEditBoxText(boxObjHeight, scratch_space, sizeof(scratch_space));
     val = atoi(scratch_space);
     if (val > 0) selectedObj->height = val;
+
+    getEditBoxText(boxObjTimestamp, scratch_space, sizeof(scratch_space));
+    val = atoi(scratch_space);
+    if (val > 0) selectedObj->timePosMs = val;
+
+    getEditBoxText(boxObjDuration, scratch_space, sizeof(scratch_space));
+    val = atoi(scratch_space);
+    if (val > 0) selectedObj->length = val;
 }
 
 void properties_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
@@ -156,6 +173,8 @@ void properties_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     
     if (boxObjWidth == 0xFF) {boxObjWidth = createEditBox(0x333333);}
     if (boxObjHeight == 0xFF) {boxObjHeight = createEditBox(0x222222);}
+    if (boxObjTimestamp == 0xFF) {boxObjTimestamp = createEditBox(0x333333);}
+    if (boxObjDuration == 0xFF) {boxObjDuration = createEditBox(0x222222);}
 
     if (!buttonDeleteObj) {
         buttonDeleteObj = createButton();
