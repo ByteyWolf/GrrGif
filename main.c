@@ -21,6 +21,8 @@
 #define DRAG_BORDER_X 1
 #define DRAG_BORDER_Y 2
 
+const char* IDENT_STR = "GrrGif Alpha v0.1.0\n(c) Copyright 2025 Bytey Wolf. All rights reserved.\n\n";
+
 const uint32_t COLOR_WHITE = 0xFFFFFF;
 const uint32_t COLOR_GRAY = 0x151515;
 
@@ -124,17 +126,23 @@ void renderUI() {
     //}
 }
 
-void insertTrack(char* filename) {
+struct LoadedFile* getMetadata(char* filename) {
     struct LoadedFile* metadata = findLoadedFile(filename);
     if (!metadata) {
         struct imageV2* imgLoaded = parse(filename);
-        if (!imgLoaded) { messagebox("GrrGif", "Failed to load file!", MSGBOX_ERROR); return;}
+        if (!imgLoaded) { messagebox("GrrGif", "Failed to load file!", MSGBOX_ERROR); return 0;}
         
         metadata = malloc(sizeof(struct LoadedFile));
         metadata->imagePtr = imgLoaded;
         metadata->type = FILE_ANIMATION;
         metadata->refCount = 1;
     } else metadata->refCount++;
+    return metadata;
+}
+
+void insertTrack(char* filename) {
+    struct LoadedFile* metadata = getMetadata(filename);
+    if (!metadata) return;
 
     struct TimelineObject* test1 = malloc(sizeof(struct TimelineObject));
     test1->x = 30;
@@ -153,7 +161,7 @@ void insertTrack(char* filename) {
 }
 
 int main(int argc, char *argv[]) {
-    printf("GrrGif v0.0\n(c) Copyright 2025 Bytey Wolf. All rights reserved.\n\n");
+    printf(IDENT_STR);
 
     int running = 1;
     Event* event = malloc(sizeof(Event));
@@ -177,12 +185,14 @@ int main(int argc, char *argv[]) {
     append_menu_separator(menuFile);
     append_menu(menuFile, "Exit", COMMAND_FILE_EXIT);
 
-    append_menu(menuTimeline, "Add to Timeline", COMMAND_ACTION_ADDTRACK);
+    append_menu(menuTimeline, "GIF", COMMAND_ACTION_ADDTRACK);
+    append_menu(menuTimeline, "Shape", COMMAND_ACTION_ADDSHAPE);
+    append_menu(menuTimeline, "Text", COMMAND_ACTION_ADDTEXT);
 
     append_menu(menuHelp, "About GrrGif", COMMAND_HELP_ABOUT);
 
     finalize_menu(menuFile, "File");
-    finalize_menu(menuTimeline, "Action");
+    finalize_menu(menuTimeline, "Insert");
     finalize_menu(menuHelp, "Help");
 
     //scheduleRendering();
@@ -325,9 +335,30 @@ int main(int argc, char *argv[]) {
                             pendingRedraw = 1;
                             break;
                         }
-                        case COMMAND_HELP_ABOUT:
-                            messagebox("About GrrGif", "Placeholder popup", MSGBOX_INFO);
+                        case COMMAND_HELP_ABOUT: {
+                            char* strbuf = malloc(2048);
+                            if (!strbuf) {messagebox("GrrGif", "Insufficient memory", MSGBOX_ERROR); break;}
+
+                            HANDLE hHeap = GetProcessHeap();
+                            if (!hHeap) {messagebox("GrrGif", "Error getting heap data", MSGBOX_ERROR); break;}
+
+                            PROCESS_HEAP_ENTRY entry;
+                            SIZE_T totalUsed = 0;
+
+                            entry.lpData = NULL;
+
+                            while (HeapWalk(hHeap, &entry)) {
+                                if (entry.wFlags & PROCESS_HEAP_ENTRY_BUSY) {
+                                    totalUsed += entry.cbData;
+                                }
+                            }
+
+                            if (GetLastError() != ERROR_NO_MORE_ITEMS) {messagebox("GrrGif", "Error getting heap data", MSGBOX_ERROR); break;}
+                            
+                            snprintf(strbuf, 2047, "%sMemory used by GrrGif: %u bytes", IDENT_STR, totalUsed);
+                            messagebox("About GrrGif", strbuf, MSGBOX_INFO);
                             break;
+                        }
                     }
                     break;
             }

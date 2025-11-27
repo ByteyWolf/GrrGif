@@ -21,6 +21,8 @@ struct GUIButton* crtButtonHeld = 0;
 
 struct GUITextBox* crtTextBoxTyping = 0;
 
+extern struct TimelineObject* selectedObj;
+
 uint32_t getWindowX(uint8_t type) {
     switch (type) {
         case POSITION_BOTTOM:
@@ -173,10 +175,13 @@ void setButtonState(struct GUIButton* btn, uint8_t state) {
 
 void buttonCallback(struct GUIButton* btn) {
     switch (btn->buttonID) {
-        case BUTTON_TIMELINE_PLAYSTOP: {
+        case BUTTON_TIMELINE_PLAYSTOP:
             previewPlaying = !previewPlaying;
             btn->text = previewPlaying ? "Stop" : "Play";
-        }
+            break;
+        case BUTTON_PROPERTIES_DELETE:
+            destroyTimelineObj(selectedObj);
+            selectedObj = 0;
     }
 }
 

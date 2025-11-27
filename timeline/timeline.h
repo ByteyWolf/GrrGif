@@ -70,5 +70,6 @@ struct Timeline {
 struct LoadedFile* findLoadedFile(char* filepath);
 int insertTimelineObj(struct TimelineObject* obj, uint8_t track);
 void insertTimelineObjFree(struct TimelineObject* obj);
+void destroyTimelineObj(struct TimelineObject* obj);
 void timeline_heartbeat();
 uint64_t current_time_ms();

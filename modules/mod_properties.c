@@ -24,6 +24,8 @@ static uint8_t boxFileHeight = 0xFF;
 static uint8_t boxObjWidth = 0xFF;
 static uint8_t boxObjHeight = 0xFF;
 
+static struct GUIButton* buttonDeleteObj = 0;
+
 void reset_rect(uint32_t x, uint32_t width) {
     rect_color = 0x333333;
     rect.width = width - 16;
@@ -41,6 +43,7 @@ void step_rect() {
 void draw_file(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     setEditBoxVisible(boxObjWidth, 0);
     setEditBoxVisible(boxObjHeight, 0);
+    buttonDeleteObj->state = BUTTON_STATE_HIDDEN;
     
     draw_text("This project", x + 10, y + 40, 0xFFFFFF);
     draw_text("This project", x + 11, y + 40, 0xFFFFFF);
@@ -85,6 +88,7 @@ void draw_file(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
 void draw_object(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     setEditBoxVisible(boxFileWidth, 0);
     setEditBoxVisible(boxFileHeight, 0);
+    if (buttonDeleteObj->state == BUTTON_STATE_HIDDEN) buttonDeleteObj->state = BUTTON_STATE_NORMAL;
     
     draw_text_limited(selectedObj->fileName, x + 10, y + 40, 0xFFFFFF, ANCHOR_LEFT, width - 20);
     draw_text_limited(selectedObj->fileName, x + 11, y + 40, 0xFFFFFF, ANCHOR_LEFT, width - 20);
@@ -151,7 +155,19 @@ void properties_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     if (boxFileHeight == 0xFF) {boxFileHeight = createEditBox(0x222222);}
     
     if (boxObjWidth == 0xFF) {boxObjWidth = createEditBox(0x333333);}
-    if (boxObjHeight== 0xFF) {boxObjHeight = createEditBox(0x222222);} 
+    if (boxObjHeight == 0xFF) {boxObjHeight = createEditBox(0x222222);}
+
+    if (!buttonDeleteObj) {
+        buttonDeleteObj = createButton();
+        buttonDeleteObj->weldToWindow = POSITION_TOPLEFT;
+        buttonDeleteObj->localX = 20;
+        buttonDeleteObj->localY = 300;
+        buttonDeleteObj->width = 56;
+        buttonDeleteObj->height = 20;
+        buttonDeleteObj->text = "Delete";
+        buttonDeleteObj->buttonID = BUTTON_PROPERTIES_DELETE;
+        addButton(buttonDeleteObj);
+    }
     
     set_font_size(FONT_SIZE_NORMAL);
     if (!selectedObj) draw_file(x, y, width, height); else draw_object(x, y, width, height);

@@ -19,6 +19,8 @@ extern uint32_t timelineLengthMs;
 extern uint32_t fileWidthPx;
 extern uint32_t fileHeightPx;
 
+extern struct LoadedFile* getMetadata(char* filename);
+
 uint8_t saveProject(char* filePath) {
     uint32_t* scratch = malloc(64);
     if (!scratch) return 0;
@@ -30,7 +32,7 @@ uint8_t saveProject(char* filePath) {
 
             uint32_t stringId = 0;
 
-    for (uint8_t track = 0; track < MAX_TRACKS; track++) {
+    for (uint8_t track = 0; track < MAX_TRACKS - 1; track++) {
         struct TimelineObject* crtObj = tracks[track].first;
         while (crtObj) {
             uint8_t hdr = STRING_HEADER;
@@ -114,7 +116,7 @@ uint8_t loadProject(char* filePath) {
 
                 if (strId >= strBufSize) PROJECTLOADFAIL
                     newObj->fileName = strdup(strBuffer[strId]);
-                newObj->metadata = NULL;
+                newObj->metadata = getMetadata(newObj->fileName);
                 newObj->effectsList = NULL;
                 newObj->nextObject = NULL;
                 newObj->track = currentTrack;
@@ -144,4 +146,8 @@ uint8_t loadProject(char* filePath) {
     fclose(fd);
     free(scratch);
     return 1;
+}
+
+void saveGIF() {
+
 }

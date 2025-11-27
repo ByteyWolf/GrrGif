@@ -140,3 +140,35 @@ void insertTimelineObjFree(struct TimelineObject* obj) {
     }
     insertTimelineObj(obj, 0);
 }
+
+void destroyTimelineObj(struct TimelineObject* obj) {
+    // find it in track array
+    struct TimelineObject* crtObj = tracks[obj->track].first;
+    while (crtObj) {
+        if (crtObj == obj) {tracks[obj->track].first = obj->nextObject; break;}
+        if (crtObj->nextObject == obj) break;
+        crtObj = crtObj->nextObject;
+    }
+    if (!crtObj) return;
+    crtObj->nextObject = obj->nextObject;
+    if (tracks[obj->track].last == obj && tracks[obj->track].first != tracks[obj->track].last) {
+        tracks[obj->track].last = crtObj;
+    }
+    obj->metadata->refCount--;
+    if (obj->metadata->refCount == 0) {
+        debugf(DEBUG_INFO, "Freeing resource %s.", obj->fileName);
+        struct imageV2* img = obj->metadata->imagePtr;
+        for (uint32_t frame = 0; frame < img->frame_count; frame++) {
+            free(img->frames[frame]);
+        }
+        free(img->frames);
+        free(img);
+        if (obj->metadata->type == FILE_TEXT) {
+            free(obj->metadata->text);
+            free(obj->metadata->textFont);
+        }
+        free(obj->metadata);
+    }
+    free(obj->fileName);
+    free(obj);
+}
