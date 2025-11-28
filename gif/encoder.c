@@ -3,46 +3,39 @@
 #include <stdint.h>
 
 #include "../timeline/timeline.h"
+#include "../util/hashmap.h"
 
 extern struct Timeline tracks[];
 
-uint8_t export_gif(char* filepath, uint32_t max_colors) {
+// explanation of STRATEGY
+// 0b00 - Full color, do not merge overlapping frames
+// 0b01 - Full color, merge overlapping frames
+// 0b10 - 256 colors, do not merge overlapping frames
+// 0b11 - 256 colors, merge overlapping frames
+uint8_t export_gif(char* filepath, uint8_t strategy) {
+    // get most popular colors in gif
+    struct HashMap* colors = bw_newhashmap(4096); // about 32 kb
+    for (uint8_t track = 0; track < MAX_TRACKS; track++) {
+        struct TimelineObject* crtObj = tracks[track].first;
+        while (crtObj) {
+            // loop through metadata here (too lazy to add rn)
+            switch (crtObj->metadata->type) {
+                case FILE_ANIMATION: {
+                    struct imageV2* img = crtObj->metadata->imagePtr;
+                    for (uint32_t frame = 0; frame < img->frame_count; frame++) {
+                        struct frameV2* frame = img->frames[frame];
+                        for (uint16_t color = 0; color < 256; color++) {
+                            // todo, and also fix the max color bound pls in decoder.c thx
+                        }
+                    }
 
-    /* Here's a few strategies I can use for picking colors.
-
-    - 255 colors: I can find all colors present in the GIF
-    and get up to 255 most used ones. Then, I can encode all
-    of them into the Global Color Table and save a lot of
-    GIF space that way.
-
-    - Full Color: All timeline objects already have local
-    palettes for each frame. So, I can just copy them
-    naively into the resulting GIF. This is the simplest
-    approach but the GIF ends up very large.
-
-    - Shared Full Color: Same as above, but we can put
-    colors shared between multiple frames into the GCT
-    based on the amount of frames using said color(s).
-
-    - Adaptive Full Color: Same as above, but also
-    merge similar colors. Produces best file size.
-
-
-
-    There are also some problems with GIF frame delays.
-    In most GIF players these days, a delay of 0 actually
-    is interpreted as a delay of 10.
-    This can be worked around by setting the delay to 1,
-    however it's not a nice solution if, for instance,
-    two frames on two different tracks begin at the same
-    time. In that case, we'd either need to indeed set
-    the delay to 1 or 2, or merge the two frames together.
-    Note that this causes color loss, and the user should
-    probably be warned about it.
-
-    */
-    
-    
+                }
+            }
+            crtObj = crtObj->nextObject;
+        }
+    }
+    bw_hashfree(colors);
+        
     FILE* fd = fopen(filepath, "wb");
     if (!fd) return 0;
 
