@@ -7,6 +7,7 @@
 #include "../debug.h"
 #include "timeline.h"
 #include "../graphics/graphics.h"
+#include "../gif/gif.h"
 
 uint32_t timelineObjects;
 uint32_t timelineMaxMs;
@@ -18,7 +19,7 @@ uint8_t previewPlaying = 0;
 uint32_t fileWidthPx = 1200;
 uint32_t fileHeightPx = 600;
 
-uint8_t exportMode = EXPORT_OPTIMIZED;
+uint8_t exportMode = STRATEGY_MERGEFRAMES;
 
 uint64_t lastTimelineEpoch = 0;
 

@@ -72,9 +72,11 @@ void fit_aspect_ratio(uint32_t src_width, uint32_t src_height,
 
 void draw_canvas_rect(int x, int y, uint32_t width, uint32_t height, uint32_t color) {
     if (!pixelPreview) return;
+    uint32_t useColor = color;
     for (int crtx = x; crtx<x+width; crtx++) {
         for (int crty = y; crty<y+height; crty++) {
-            if ((crty*previewWidth+crtx)>canvas_width*canvas_height-1) break;
+            if ((crty*previewWidth+crtx)>previewWidth*previewHeight-1) continue;
+            
             if (color > 0xFFFFFF) {
                 uint16_t alpha = (color >> 24) & 0xFF;
                 uint16_t rD = (color >> 16) & 0xFF;
@@ -90,9 +92,9 @@ void draw_canvas_rect(int x, int y, uint32_t width, uint32_t height, uint32_t co
                 gD = (alpha * gD + (255 - alpha) * gS) / 255;
                 bD = (alpha * bD + (255 - alpha) * bS) / 255;
 
-                color = (rD << 16) | (gD << 8) | bD;
+                useColor = (rD << 16) | (gD << 8) | bD;
             }
-            pixelPreview[crty*previewWidth+crtx]=color;
+            pixelPreview[crty*previewWidth+crtx]=useColor;
         }
     }
 }

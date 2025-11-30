@@ -31,6 +31,7 @@ struct imageV2 {
 struct frameV2 {
     uint32_t delay;
     uint32_t palette[256];
+    uint16_t palette_size;
     uint16_t transp_idx;
     uint8_t* pixels;
 };

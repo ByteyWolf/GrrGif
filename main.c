@@ -29,6 +29,8 @@ const uint32_t COLOR_GRAY = 0x151515;
 extern uint32_t wwidth;
 extern uint32_t wheight;
 
+extern uint8_t exportMode;
+
 extern uint8_t previewPlaying;
 
 uint8_t pendingRedraw = 1;
@@ -46,6 +48,7 @@ extern struct GUIButton* crtButtonHeld;
 extern struct GUITextBox* crtTextBoxTyping;
 
 uint8_t mouseDown = 0;
+uint64_t lastRenderMs = 0;
 
 void shrink_rect(Rect* rect, int pixels) {
     rect->x += pixels;
@@ -71,8 +74,10 @@ void hoverLogic(struct GUIButton* crtButton, Event* event) {
 }
 
 void renderUI() {
+    uint64_t crtTime = current_time_ms();
+    if (crtTime - lastRenderMs < 32) {Sleep(2); return;}
+    lastRenderMs = crtTime;
     //while (1) {
-        Sleep(10);
         timeline_heartbeat();
         if (!pendingRedraw) return; // continue;
         pendingRedraw = 0;
@@ -325,6 +330,8 @@ int main(int argc, char *argv[]) {
                         }
 
                         case COMMAND_FILE_EXPORT:
+                            // ask user for destination here
+                            export_gif(0, exportMode);
                             messagebox("GrrGif", "This is not yet implemented!", MSGBOX_WARNING);
                             break;
                             
@@ -364,10 +371,12 @@ int main(int argc, char *argv[]) {
             }
             preview_handle_event(event);
             timeline_handle_event(event);
+            renderUI();
         }
+        Sleep(1);
 
         //clear_graphics(0x000000);
-        if (previewPlaying) preview_draw(wwidth - windows[POSITION_TOPRIGHT].width, 0, windows[POSITION_TOPRIGHT].width, windows[POSITION_TOPRIGHT].height);
+        //if (previewPlaying) preview_draw(wwidth - windows[POSITION_TOPRIGHT].width, 0, windows[POSITION_TOPRIGHT].width, windows[POSITION_TOPRIGHT].height);
         renderUI();
         
     }

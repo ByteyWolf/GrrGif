@@ -174,6 +174,7 @@ void setButtonState(struct GUIButton* btn, uint8_t state) {
 }
 
 void buttonCallback(struct GUIButton* btn) {
+    if (btn->state == BUTTON_STATE_HIDDEN) return;
     switch (btn->buttonID) {
         case BUTTON_TIMELINE_PLAYSTOP:
             previewPlaying = !previewPlaying;

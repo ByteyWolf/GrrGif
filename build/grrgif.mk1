@@ -111,6 +111,14 @@ e\timeline.c .AUTODEPEND
 \OpenWatcom\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -ol -&
 ol+ -oc -oi -oh -om -d2 -3r -bt=nt -fo=.obj -mf
 
+C:\LocalProjects\GrrGif\build\hashmap.obj : C:\LocalProjects\GrrGif\util\has&
+hmap.c .AUTODEPEND
+ @C:
+ cd C:\LocalProjects\GrrGif\build
+ *wcc386 ..\util\hashmap.c -i="C:\OpenWatcom\ow_portable_v2_stable/h;C:\Open&
+Watcom\ow_portable_v2_stable/h/nt" -w4 -e25 -zq -za99 -otexan -ob -ol -ol+ -&
+oc -oi -oh -om -d2 -3r -bt=nt -fo=.obj -mf
+
 C:\LocalProjects\GrrGif\build\program.res : C:\LocalProjects\GrrGif\resource&
 s\program.rc .AUTODEPEND
  @C:
@@ -128,18 +136,20 @@ d\main.obj C:\LocalProjects\GrrGif\build\modules.obj C:\LocalProjects\GrrGif&
 \build\mod_preview.obj C:\LocalProjects\GrrGif\build\mod_properties.obj C:\L&
 ocalProjects\GrrGif\build\mod_timeline.obj C:\LocalProjects\GrrGif\build\pro&
 jectformat.obj C:\LocalProjects\GrrGif\build\timeline.obj C:\LocalProjects\G&
-rrGif\debug.h C:\LocalProjects\GrrGif\gif\gif.h C:\LocalProjects\GrrGif\gif\&
-paletteutil.h C:\LocalProjects\GrrGif\graphics\graphics.h C:\LocalProjects\G&
-rrGif\graphics\gui_utility.h C:\LocalProjects\GrrGif\image32.h C:\LocalProje&
-cts\GrrGif\lock.h C:\LocalProjects\GrrGif\lzw\lzw.h C:\LocalProjects\GrrGif\&
-modules.h C:\LocalProjects\GrrGif\projectformat.h C:\LocalProjects\GrrGif\st&
-dint.h C:\LocalProjects\GrrGif\timeline\timeline.h C:\LocalProjects\GrrGif\b&
-uild\program.res .AUTODEPEND
+rrGif\build\hashmap.obj C:\LocalProjects\GrrGif\debug.h C:\LocalProjects\Grr&
+Gif\gif\gif.h C:\LocalProjects\GrrGif\gif\paletteutil.h C:\LocalProjects\Grr&
+Gif\graphics\graphics.h C:\LocalProjects\GrrGif\graphics\gui_utility.h C:\Lo&
+calProjects\GrrGif\image32.h C:\LocalProjects\GrrGif\lock.h C:\LocalProjects&
+\GrrGif\lzw\lzw.h C:\LocalProjects\GrrGif\modules.h C:\LocalProjects\GrrGif\&
+projectformat.h C:\LocalProjects\GrrGif\stdint.h C:\LocalProjects\GrrGif\tim&
+eline\timeline.h C:\LocalProjects\GrrGif\util\hashmap.h C:\LocalProjects\Grr&
+Gif\util\misc.h C:\LocalProjects\GrrGif\build\program.res .AUTODEPEND
  @C:
  cd C:\LocalProjects\GrrGif\build
  @%write grrgif.lk1 FIL debug.obj,decoder.obj,encoder.obj,paletteutil.obj,gr&
 aphics_win32.obj,gui_utility.obj,lzwdecode.obj,main.obj,modules.obj,mod_prev&
-iew.obj,mod_properties.obj,mod_timeline.obj,projectformat.obj,timeline.obj
+iew.obj,mod_properties.obj,mod_timeline.obj,projectformat.obj,timeline.obj,h&
+ashmap.obj
  @%append grrgif.lk1 
 !ifneq BLANK ""
  *wlib -q -n -b grrgif.imp 

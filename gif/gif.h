@@ -21,3 +21,4 @@
 #define STRATEGY_256COLORS 2
 
 struct imageV2* parse(const char *filename);
+uint8_t export_gif(char* filepath, uint8_t strategy);

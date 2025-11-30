@@ -268,6 +268,7 @@ static uint8_t handle_image_descriptor(gif_context_t* ctx) {
     current_frame->transp_idx = bg_index_local;
 
     memcpy(current_frame->palette, ctx->local_palette, sizeof(current_frame->palette));
+    current_frame->palette_size = ctx->lct_entries;
     if (ctx->current_gce.transp_flag) {
         current_frame->palette[bg_index_local] &= 0x00FFFFFF;
     }

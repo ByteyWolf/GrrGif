@@ -24,6 +24,8 @@ static uint8_t boxFileHeight = 0xFF;
 
 static uint8_t boxObjWidth = 0xFF;
 static uint8_t boxObjHeight = 0xFF;
+static uint8_t boxObjX = 0xFF;
+static uint8_t boxObjY = 0xFF;
 static uint8_t boxObjTimestamp = 0xFF;
 static uint8_t boxObjDuration = 0xFF;
 
@@ -48,6 +50,8 @@ void draw_file(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     setEditBoxVisible(boxObjHeight, 0);
     setEditBoxVisible(boxObjTimestamp, 0);
     setEditBoxVisible(boxObjDuration, 0);
+    setEditBoxVisible(boxObjX, 0);
+    setEditBoxVisible(boxObjY, 0);
     buttonDeleteObj->state = BUTTON_STATE_HIDDEN;
     
     draw_text("This project", x + 10, y + 40, 0xFFFFFF);
@@ -83,11 +87,11 @@ void draw_file(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     // update stuff
     getEditBoxText(boxFileWidth, scratch_space, sizeof(scratch_space));
     int val = atoi(scratch_space);
-    if (val > 0) fileWidthPx = val;
+    if (val > 0 && val < 0xFFFF) fileWidthPx = val;
 
     getEditBoxText(boxFileHeight, scratch_space, sizeof(scratch_space));
     val = atoi(scratch_space);
-    if (val > 0) fileHeightPx = val;
+    if (val > 0 && val < 0xFFFF) fileHeightPx = val;
 }
 
 void draw_object(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
@@ -118,13 +122,15 @@ void draw_object(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     
     draw_text_anchor("X", x + 10, rect.y - 19, 0xCCCCCC, ANCHOR_LEFT);
     snprintf(scratch_space, sizeof(scratch_space), "%d", selectedObj->x);
-    draw_text_anchor(scratch_space, x + width - 10, rect.y - 19, 0xCCCCCC, ANCHOR_RIGHT);
+    if (!boxIsFocused(boxObjX))    setEditBoxText(boxObjX, scratch_space);
+    moveEditBox(boxObjX, x + width - 100, rect.y - 18, 90, 18);
     
     step_rect();
     
     draw_text_anchor("Y", x + 10, rect.y - 19, 0xCCCCCC, ANCHOR_LEFT);
     snprintf(scratch_space, sizeof(scratch_space), "%d", selectedObj->y);
-    draw_text_anchor(scratch_space, x + width - 10, rect.y - 19, 0xCCCCCC, ANCHOR_RIGHT);
+    if (!boxIsFocused(boxObjY))    setEditBoxText(boxObjY, scratch_space);
+    moveEditBox(boxObjY, x + width - 100, rect.y - 18, 90, 18);
 
     rect.y += 40;
     draw_text_anchor("Timeline", x + 10, rect.y - 19, 0xCCCCCC, ANCHOR_LEFT);
@@ -143,6 +149,8 @@ void draw_object(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     if (!boxIsFocused(boxObjDuration))    setEditBoxText(boxObjDuration, scratch_space);
     moveEditBox(boxObjDuration, x + width - 100, rect.y - 18, 90, 18);
 
+    setEditBoxVisible(boxObjX, 1);
+    setEditBoxVisible(boxObjY, 1);
     setEditBoxVisible(boxObjWidth, 1);
     setEditBoxVisible(boxObjHeight, 1);
     setEditBoxVisible(boxObjTimestamp, 1);
@@ -151,19 +159,27 @@ void draw_object(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     // update stuff
     getEditBoxText(boxObjWidth, scratch_space, sizeof(scratch_space));
     int val = atoi(scratch_space);
-    if (val > 0) selectedObj->width = val;
+    if (val > 0 && val < 0xFFFF) selectedObj->width = val;
 
     getEditBoxText(boxObjHeight, scratch_space, sizeof(scratch_space));
     val = atoi(scratch_space);
-    if (val > 0) selectedObj->height = val;
+    if (val > 0 && val < 0xFFFF) selectedObj->height = val;
+
+    getEditBoxText(boxObjX, scratch_space, sizeof(scratch_space));
+    val = atoi(scratch_space);
+    if (val > 0 && val < 0xFFFF) selectedObj->x = val;
+
+    getEditBoxText(boxObjY, scratch_space, sizeof(scratch_space));
+    val = atoi(scratch_space);
+    if (val > 0 && val < 0xFFFF) selectedObj->y = val;
 
     getEditBoxText(boxObjTimestamp, scratch_space, sizeof(scratch_space));
     val = atoi(scratch_space);
-    if (val > 0) selectedObj->timePosMs = val;
+    if (val > 0) selectedObj->timePosMs = val / 10 * 10;
 
     getEditBoxText(boxObjDuration, scratch_space, sizeof(scratch_space));
     val = atoi(scratch_space);
-    if (val > 0) selectedObj->length = val;
+    if (val > 0) selectedObj->length = val / 10 * 10;
 }
 
 void properties_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
@@ -173,6 +189,8 @@ void properties_draw(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     
     if (boxObjWidth == 0xFF) {boxObjWidth = createEditBox(0x333333);}
     if (boxObjHeight == 0xFF) {boxObjHeight = createEditBox(0x222222);}
+    if (boxObjX == 0xFF) {boxObjX = createEditBox(0x333333);}
+    if (boxObjY == 0xFF) {boxObjY = createEditBox(0x222222);}
     if (boxObjTimestamp == 0xFF) {boxObjTimestamp = createEditBox(0x333333);}
     if (boxObjDuration == 0xFF) {boxObjDuration = createEditBox(0x222222);}
 
