@@ -17,8 +17,7 @@
 #define DISPOSE_BACKGROUND 2
 #define DISPOSE_PREVIOUS 3
 
-#define STRATEGY_MERGEFRAMES 1
-#define STRATEGY_256COLORS 2
+#define EXPORT_OPTION_NOGCT 1
 
 struct imageV2* parse(const char *filename);
 uint8_t export_gif(char* filepath, uint8_t strategy);

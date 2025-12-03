@@ -19,7 +19,7 @@ uint8_t previewPlaying = 0;
 uint32_t fileWidthPx = 1200;
 uint32_t fileHeightPx = 600;
 
-uint8_t exportMode = STRATEGY_MERGEFRAMES;
+uint8_t exportMode = 0;
 
 uint64_t lastTimelineEpoch = 0;
 
