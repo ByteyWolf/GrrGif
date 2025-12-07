@@ -1,61 +1,24 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "../timeline/timeline.h"
 #include "../util/hashmap.h"
 #include "../image32.h"
 #include "gif.h"
 #include "../util/misc.h"
+#include "../debug.h"
+#include "../graphics/graphics.h"
+
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
 
 extern struct Timeline tracks[];
 extern uint32_t fileWidthPx;
 extern uint32_t fileHeightPx;
-
 extern uint32_t* pixelPreview;
-
-
-void init_cursors(struct TimelineObject* cursors[]) {
-    for (uint8_t track = 0; track < MAX_TRACKS; track++) {
-        cursors[track] = tracks[track].first;
-        if (cursors[track]) cursors[track]->fakeTimePosMs = 0;
-    }
-}
-
-struct TimelineObject* get_next_object(struct TimelineObject* cursors[], uint8_t advance) {
-    struct TimelineObject* earliest_object = 0;
-    uint32_t earliest_appearance = 0xFFFFFFFF;
-    
-    for (uint8_t track = 0; track < MAX_TRACKS; track++) {
-        struct TimelineObject* objHere = cursors[track];
-        if (!objHere) continue;
-        // reuse fakeTimePosMs for frames
-        uint32_t timePosMs = objHere->timePosMs;
-        if (objHere->metadata->type == FILE_ANIMATION) {
-            timePosMs += objHere->metadata->imagePtr->frames[objHere->fakeTimePosMs]->delay;
-        }
-        
-        if (timePosMs < earliest_appearance) {
-            earliest_object = objHere;
-            earliest_appearance = objHere->timePosMs;
-        }
-    }
-    if (advance && earliest_object) {
-        if (earliest_object->metadata->type == FILE_ANIMATION) {
-            uint32_t frames = earliest_object->metadata->imagePtr->frame_count;
-            if (earliest_object->fakeTimePosMs >= frames - 1) {
-                cursors[earliest_object->track] = earliest_object->nextObject;
-                if (earliest_object->nextObject) earliest_object->nextObject->fakeTimePosMs = 0;
-            } else {
-                earliest_object->fakeTimePosMs++;
-            }
-            
-        } else
-            cursors[earliest_object->track] = earliest_object->nextObject;
-    }
-    
-    return earliest_object;
-}
+extern uint32_t timelineLengthMs;
 
 uint8_t gct_size_value(uint16_t shared_colors) {
     if (shared_colors == 0) return 0;
@@ -67,19 +30,86 @@ uint8_t gct_size_value(uint16_t shared_colors) {
     return gct_size;
 }
 
-// todo: gifs layered atop each other that arent merged must clip
-uint8_t export_gif(char* filepath, uint8_t export_option) {    
-    // get most popular colors in gif
+struct frameV2* merge_frameV2(struct frameV2* dest, struct frameV2* source,
+                    Rect destinfo, Rect sourceinfo, Rect* newinfo) {
+    // creates new frameV2 for render only
+    // calculate new bounds and allocate new pixel buffer
+    int minX = MIN(sourceinfo.x, destinfo.x);
+    int minY = MIN(sourceinfo.y, destinfo.y);
+    int maxX = MAX(sourceinfo.x + sourceinfo.width, destinfo.x + destinfo.width);
+    int maxY = MAX(sourceinfo.y + sourceinfo.height, destinfo.y + destinfo.height);
+    int newWidth = maxX - minX;
+    int newHeight = maxY - minY;
+
+    uint8_t* pixels = malloc(newWidth*newHeight);
+    if (!pixels) return 0;
+
+    struct frameV2* newFrame = malloc(sizeof(struct frameV2));
+    if (!newFrame) {free(pixels); return 0;}
+
+    newFrame->delay = dest->delay;
+    newFrame->pixels = pixels;
+
+    newinfo->x = minX;
+    newinfo->y = minY;
+    newinfo->width = newWidth;
+    newinfo->height = newHeight;
+    
+    if (dest->palette_size + source->palette_size < 256) {
+        // thats easy
+        for (uint16_t sourceId = 0; sourceId < source->palette_size; sourceId++) {
+            newFrame->palette[sourceId] = source->palette[sourceId];
+        }
+        for (uint16_t destId = 0; destId < dest->palette_size; destId++) {
+            newFrame->palette[source->palette_size + destId] = dest->palette[destId];
+        }
+        newFrame->palette_size = source->palette_size + dest->palette_size;
+        newFrame->transp_idx = (source->transp_idx == 0xFF) ? dest->transp_idx : source->transp_idx;
+
+        memset(pixels, newFrame->transp_idx, newWidth * newHeight);
+        // copy source frame, then dest
+        for (int x = sourceinfo.x; x<sourceinfo.x + sourceinfo.width; x++) {
+            for (int y = sourceinfo.y; y<sourceinfo.y + sourceinfo.height; y++) {
+                uint32_t targetX = x - minX;
+                uint32_t targetY = y - minY;
+                uint32_t writeTo = targetY * newWidth + targetX;
+                if (writeTo >= newWidth * newHeight) continue;
+                uint32_t writeFrom = (y - sourceinfo.y) * sourceinfo.width + (x - sourceinfo.x);
+                if (writeFrom >= sourceinfo.width * sourceinfo.height) continue;
+                pixels[writeTo] = source->pixels[writeFrom];
+            }
+        }
+        for (int x = destinfo.x; x<destinfo.x + destinfo.width; x++) {
+            for (int y = destinfo.y; y<destinfo.y + destinfo.height; y++) {
+                uint32_t targetX = x - minX;
+                uint32_t targetY = y - minY;
+                uint32_t writeTo = targetY * newWidth + targetX;
+                if (writeTo >= newWidth * newHeight) continue;
+                uint32_t writeFrom = (y - destinfo.y) * destinfo.width + (x - destinfo.x);
+                if (writeFrom >= destinfo.width * destinfo.height) continue;
+                pixels[writeTo] = dest->pixels[writeFrom] + source->palette_size;
+            }
+        }
+        return newFrame;
+    } else {
+        // Noo whyy
+        // todo
+        return 0;
+    }
+    
+}
+
+uint8_t export_gif(char* filepath, uint8_t export_option) {
+    uint64_t time_start = current_time_ms();
     uint32_t global_palette[256] = {0};
     uint16_t shared_colors = 0;
     uint16_t bg_color_found = 0xFFFF;
-    
+
     if (export_option & EXPORT_OPTION_NOGCT) {
-        struct HashMap* colors = bw_newhashmap(4096); // about 32 kb
+        struct HashMap* colors = bw_newhashmap(4096);
         for (uint8_t track = 0; track < MAX_TRACKS; track++) {
             struct TimelineObject* crtObj = tracks[track].first;
             while (crtObj) {
-                // loop through metadata here (too lazy to add rn)
                 switch (crtObj->metadata->type) {
                     case FILE_ANIMATION: {
                         struct imageV2* img = crtObj->metadata->imagePtr;
@@ -89,14 +119,13 @@ uint8_t export_gif(char* filepath, uint8_t export_option) {
                                 bw_hashincrement(colors, frame->palette[color]);
                             }
                         }
-    
                     }
                 }
                 crtObj = crtObj->nextObject;
             }
         }
         bw_hashsort(colors);
-        
+
         for (uint32_t crtColor = 0; crtColor < colors->keys; crtColor++) {
             uint32_t color = colors->map[crtColor].key;
             if (color > 0xFFFFFF) {
@@ -118,69 +147,78 @@ uint8_t export_gif(char* filepath, uint8_t export_option) {
         printf("Found %u reusable colors on encoding.\n", shared_colors);
         bw_hashfree(colors);
     }
-    
-    // file
-    //FILE* fd = fopen(filepath, "wb");
-    //if (!fd) return 0;
 
-    //if (!fwrite("GIF89a", 6, 1, fd)) {fclose(fd); return 0;}
-
-    // lsd
     uint8_t gct_size_bit = gct_size_value(shared_colors);
     uint8_t lsd[7];
     lsd[0] = (fileWidthPx & 0xFF);
     lsd[1] = (fileWidthPx >> 8) & 0xFF;
     lsd[2] = (fileHeightPx & 0xFF);
     lsd[3] = (fileHeightPx >> 8) & 0xFF;
-    lsd[4] = ((shared_colors > 0) << 7) | (7 << 4) | gct_size_bit; 
+    lsd[4] = ((shared_colors > 0) << 7) | (7 << 4) | gct_size_bit;
     lsd[5] = bg_color_found & 0xFF;
     lsd[6] = 0;
-    //if (!fwrite(lsd, 7, 1, fd)) {fclose(fd); return 0;}
 
-    // gct
     if (shared_colors != 0) {
         for (uint16_t color = 0; color < 1 << ((gct_size_bit & 0x7) + 1); color++) {
             uint8_t this_color[3];
             this_color[0] = (global_palette[color] >> 16) & 0xFF;
             this_color[1] = (global_palette[color] >> 8) & 0xFF;
             this_color[2] = (global_palette[color]) & 0xFF;
-            //if (!fwrite(this_color, 3, 1, fd)) {fclose(fd); return 0;}
         }
     }
 
-    // start building gce's and image data here
-    // first we need to assess all the frames there are
-    struct TimelineObject* cursors[MAX_TRACKS] = {0};
-    init_cursors(cursors);
-
-    // overlapping gifs need to be merged on render
-    struct TimelineObject* render_buffer[256] = {0};
-    uint8_t gifs_on_buffer = 0;
-
-    while (1) {
-        gifs_on_buffer = 0;
-        while(1) {
-            struct TimelineObject* crtObj = get_next_object(cursors, 1);
-            if (!crtObj) break;
-            render_buffer[gifs_on_buffer] = crtObj;
-            gifs_on_buffer++;
-            struct TimelineObject* peek = get_next_object(cursors, 0);
-            if (!peek) break;
-            uint32_t peekMs = peek->timePosMs;
-            if (peek->metadata->type == FILE_ANIMATION)
-                peekMs += peek->metadata->imagePtr->frames[peek->fakeTimePosMs]->delay;
-            uint32_t crtMs = crtObj->timePosMs;
-            if (crtObj->metadata->type == FILE_ANIMATION)
-                crtMs += crtObj->metadata->imagePtr->frames[crtObj->fakeTimePosMs]->delay;
-            printf("crtms %u peekms %u\n", crtMs, peekMs);
-            if (crtMs != peekMs) break;
-        }
-        if (!gifs_on_buffer) break;
-
-        // encode
-        printf("Would encode %u GIFs at time pos %u.\n", gifs_on_buffer, render_buffer[0]->timePosMs);
-    }
+    // build data of timeline
+    uint32_t frames_generated = 0;
     
-   
+    struct TrackStatus trackstatuses[MAX_TRACKS] = {0};
+    for (uint8_t track = 0; track < MAX_TRACKS; track++) {
+        trackstatuses[track].processingObj = tracks[track].first;
+        if (trackstatuses[track].processingObj && trackstatuses[track].processingObj->timePosMs == 0) {
+            trackstatuses[track].objectValid = 1;
+            trackstatuses[track].dirty = 1;
+        }
+    }
+    uint8_t pendingRender[MAX_TRACKS] = {0};
+    uint8_t pendingRenderCount = 0;
+    for (uint32_t timestamp = 0; timestamp<timelineLengthMs; timestamp+=10) {
+        pendingRenderCount = 0;
+        for (uint8_t track = 0; track < MAX_TRACKS; track++) {
+            // advance object and ensure it's valid
+            struct TimelineObject* crtObj = trackstatuses[track].processingObj;
+            if (!crtObj) continue;
+            if (timestamp == crtObj->timePosMs + crtObj->length) {
+                trackstatuses[track].processingObj = crtObj->nextObject;
+                trackstatuses[track].objectValid = 0;
+                trackstatuses[track].frame = 0;
+                crtObj = trackstatuses[track].processingObj;
+                if (!crtObj) continue;
+            }
+            if (!trackstatuses[track].objectValid && crtObj->timePosMs == timestamp) {
+                trackstatuses[track].objectValid = 1;
+                trackstatuses[track].dirty = 1;
+            }
+            if (!trackstatuses[track].objectValid) continue;
+
+            // advance frame inside of object
+            if (crtObj->metadata->type == FILE_ANIMATION) {
+                struct frameV2* crtFrame = crtObj->metadata->imagePtr->frames[trackstatuses[track].frame];
+                if (crtFrame && crtFrame->delay + crtObj->timePosMs == timestamp) {
+                    trackstatuses[track].frame++;
+                    trackstatuses[track].dirty = 1;
+                }
+            }
+            if (!trackstatuses[track].dirty) continue;
+            trackstatuses[track].dirty = 0;
+            pendingRender[pendingRenderCount] = track;
+            pendingRenderCount++;
+        }
+        if (!pendingRenderCount) continue;
+        debugf(DEBUG_VERBOSE, "%u ms: pending %u objects", timestamp, pendingRenderCount);
+        frames_generated++;
+    }
+    uint64_t time_end = current_time_ms();
+    
+    debugf(DEBUG_INFO, "Generated %u frames in %u ms.", frames_generated, time_end - time_start);
+
     return 0;
 }

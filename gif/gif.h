@@ -19,5 +19,12 @@
 
 #define EXPORT_OPTION_NOGCT 1
 
+struct TrackStatus {
+    struct TimelineObject* processingObj;
+    uint32_t frame;
+    uint8_t dirty;
+    uint8_t objectValid;
+};
+
 struct imageV2* parse(const char *filename);
 uint8_t export_gif(char* filepath, uint8_t strategy);
