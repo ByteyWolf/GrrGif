@@ -10,6 +10,12 @@
 #include "../util/misc.h"
 #include "../debug.h"
 #include "../graphics/graphics.h"
+#include "../lzw/lzw.h"
+
+/* void lzw_encode_init(lzw_encode_state_t *state, uint8_t min_code_size); - just allocate the state
+uint8_t* lzw_encode_feed(lzw_encode_state_t *state, const uint8_t *data,
+                         size_t data_size, size_t *encoded_size); - returns encoded bytes
+uint8_t* lzw_encode_finish(lzw_encode_state_t *state, size_t *encoded_size); - returns encoded bytes */
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -104,6 +110,10 @@ uint8_t export_gif(char* filepath, uint8_t export_option) {
     uint32_t global_palette[256] = {0};
     uint16_t shared_colors = 0;
     uint16_t bg_color_found = 0xFFFF;
+
+    // todo: it would be nice here to render all of the text objects into frameV2's
+    // but this is for way later and we can skip this for now since
+    // we dont even have text support yet
 
     if (export_option & EXPORT_OPTION_NOGCT) {
         struct HashMap* colors = bw_newhashmap(4096);
@@ -214,6 +224,42 @@ uint8_t export_gif(char* filepath, uint8_t export_option) {
         }
         if (!pendingRenderCount) continue;
         debugf(DEBUG_VERBOSE, "%u ms: pending %u objects", timestamp, pendingRenderCount);
+
+        // go through all the layers to prevent clipping        
+        uint8_t pendingRenderPtr = 0;
+        uint8_t writeLock = 1;
+        
+        // WTF?
+        struct imageV2* imgptr = trackstatuses[pendingRender[0]].processingObj->metadata->imagePtr;
+        struct frameV2* sourceFrame = imgptr->frames[trackstatuses[pendingRender[0]].frame];
+        Rect frameInfo = {0};
+        frameInfo.width = imgptr->width;
+        frameInfo.height = imgptr->height;
+        frameInfo.x = trackstatuses[pendingRender[0]].processingObj->x;
+        frameInfo.y = trackstatuses[pendingRender[0]].processingObj->y;
+ 
+        for (uint8_t crtTrack = 0; crtTrack<MAX_TRACKS; crtTrack++) {
+            if (trackstatuses[crtTrack].objectValid) {
+                if (pendingRender[pendingRenderPtr] == crtTrack) {
+                    struct imageV2* imgptrdest = trackstatuses[crtTrack].processingObj->metadata->imagePtr;
+                    // render onto the source for the final thing
+                    pendingRenderPtr++;
+                    Rect destInfo = {0};
+                    destInfo.width = imgptrdest->width;
+                    destInfo.height = imgptrdest->height;
+                    destInfo.x = trackstatuses[crtTrack].processingObj->x;
+                    destInfo.y = trackstatuses[crtTrack].processingObj->y;
+                    sourceFrame = mergeFrames(sourceFrame, imgptrdest->frames[trackstatuses[crtTrack].frame], frameInfo, destInfo, &frameInfo); // todo
+                    writeLock = 0;
+                } else {
+                    // clip this track out
+                    // todo: copy source into memory if write lock is 1
+                    // then set all the pixels where that other frame is to transparent
+                    // unless the pixel on the other frame is transparent too
+                }
+            }
+        }
+        // todo: write gce and lzw image here
         frames_generated++;
     }
     uint64_t time_end = current_time_ms();
