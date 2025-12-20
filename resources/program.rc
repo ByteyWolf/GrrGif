@@ -5,24 +5,22 @@ VS_VERSION_INFO VERSIONINFO
     PRODUCTVERSION 0,0,0,0
     FILEFLAGSMASK 0x3fL
     FILEFLAGS 0x0L
-    FILEOS 4
-    FILETYPE 1
+    FILEOS 0x4L
+    FILETYPE 0x1L
     BEGIN
         BLOCK "StringFileInfo"
         BEGIN
             BLOCK "040904b0"
             BEGIN
-                VALUE "CompanyName", "Bytey Wolf\0"
-                VALUE "FileDescription", "Lightweight GIF editor\0"
-                VALUE "FileVersion", "0.0\0"
-                VALUE "ProductName", "GrrGif\0"
-                VALUE "LegalCopyright", "(c) 2025 Bytey Wolf. All Rights Reserved.\0"
+                VALUE "CompanyName", "Bytey Wolf"
+                VALUE "FileDescription", "Lightweight GIF editor"
+                VALUE "FileVersion", "0.0"
+                VALUE "ProductName", "GrrGif"
+                VALUE "LegalCopyright", "(c) 2025 Bytey Wolf. All Rights Reserved."
             END
         END
         BLOCK "VarFileInfo"
         BEGIN
-            VALUE "Translation", 0x409, 1200
+            VALUE "Translation", 0x0409, 1200
         END
     END
-    
-

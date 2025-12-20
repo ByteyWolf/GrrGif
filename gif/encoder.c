@@ -13,9 +13,9 @@
 #include "../lzw/lzw.h"
 
 /* void lzw_encode_init(lzw_encode_state_t *state, uint8_t min_code_size); - just allocate the state
-uint8_t* lzw_encode_feed(lzw_encode_state_t *state, const uint8_t *data,
-                         size_t data_size, size_t *encoded_size); - returns encoded bytes
-uint8_t* lzw_encode_finish(lzw_encode_state_t *state, size_t *encoded_size); - returns encoded bytes */
+ u *int8_t* lzw_encode_feed(lzw_encode_state_t *state, const uint8_t *data,
+ size_t data_size, size_t *encoded_size); - returns encoded bytes
+ uint8_t* lzw_encode_finish(lzw_encode_state_t *state, size_t *encoded_size); - returns encoded bytes */
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -37,7 +37,7 @@ uint8_t gct_size_value(uint16_t shared_colors) {
 }
 
 struct frameV2* merge_frameV2(struct frameV2* dest, struct frameV2* source,
-                    Rect destinfo, Rect sourceinfo, Rect* newinfo) {
+                              Rect destinfo, Rect sourceinfo, Rect* newinfo) {
     // creates new frameV2 for render only
     // calculate new bounds and allocate new pixel buffer
     int minX = MIN(sourceinfo.x, destinfo.x);
@@ -60,7 +60,7 @@ struct frameV2* merge_frameV2(struct frameV2* dest, struct frameV2* source,
     newinfo->y = minY;
     newinfo->width = newWidth;
     newinfo->height = newHeight;
-    
+
     if (dest->palette_size + source->palette_size < 256) {
         // thats easy
         for (uint16_t sourceId = 0; sourceId < source->palette_size; sourceId++) {
@@ -102,7 +102,7 @@ struct frameV2* merge_frameV2(struct frameV2* dest, struct frameV2* source,
         // todo
         return 0;
     }
-    
+
 }
 
 uint8_t export_gif(char* filepath, uint8_t export_option) {
@@ -179,7 +179,7 @@ uint8_t export_gif(char* filepath, uint8_t export_option) {
 
     // build data of timeline
     uint32_t frames_generated = 0;
-    
+
     struct TrackStatus trackstatuses[MAX_TRACKS] = {0};
     for (uint8_t track = 0; track < MAX_TRACKS; track++) {
         trackstatuses[track].processingObj = tracks[track].first;
@@ -225,10 +225,10 @@ uint8_t export_gif(char* filepath, uint8_t export_option) {
         if (!pendingRenderCount) continue;
         debugf(DEBUG_VERBOSE, "%u ms: pending %u objects", timestamp, pendingRenderCount);
 
-        // go through all the layers to prevent clipping        
+        // go through all the layers to prevent clipping
         uint8_t pendingRenderPtr = 0;
         uint8_t writeLock = 1;
-        
+
         // WTF?
         struct imageV2* imgptr = trackstatuses[pendingRender[0]].processingObj->metadata->imagePtr;
         struct frameV2* sourceFrame = imgptr->frames[trackstatuses[pendingRender[0]].frame];
@@ -237,11 +237,11 @@ uint8_t export_gif(char* filepath, uint8_t export_option) {
         frameInfo.height = imgptr->height;
         frameInfo.x = trackstatuses[pendingRender[0]].processingObj->x;
         frameInfo.y = trackstatuses[pendingRender[0]].processingObj->y;
- 
+
         for (uint8_t crtTrack = 0; crtTrack<MAX_TRACKS; crtTrack++) {
             if (trackstatuses[crtTrack].objectValid) {
+                struct imageV2* imgptrdest = trackstatuses[crtTrack].processingObj->metadata->imagePtr;
                 if (pendingRender[pendingRenderPtr] == crtTrack) {
-                    struct imageV2* imgptrdest = trackstatuses[crtTrack].processingObj->metadata->imagePtr;
                     // render onto the source for the final thing
                     pendingRenderPtr++;
                     Rect destInfo = {0};
@@ -249,13 +249,29 @@ uint8_t export_gif(char* filepath, uint8_t export_option) {
                     destInfo.height = imgptrdest->height;
                     destInfo.x = trackstatuses[crtTrack].processingObj->x;
                     destInfo.y = trackstatuses[crtTrack].processingObj->y;
-                    sourceFrame = mergeFrames(sourceFrame, imgptrdest->frames[trackstatuses[crtTrack].frame], frameInfo, destInfo, &frameInfo); // todo
+                    Rect newInfo;
+                    struct frameV2* newFrame = merge_frameV2(sourceFrame, imgptrdest->frames[trackstatuses[crtTrack].frame], frameInfo, destInfo, &newInfo);
+                    sourceFrame = newFrame;
+                    frameInfo = newInfo;
                     writeLock = 0;
                 } else {
                     // clip this track out
-                    // todo: copy source into memory if write lock is 1
-                    // then set all the pixels where that other frame is to transparent
-                    // unless the pixel on the other frame is transparent too
+                    
+                    if (writeLock) {
+                        uint8_t* pixels = malloc(frameInfo.width * frameInfo.height);
+                        if (!pixels) return 0;
+                        struct frameV2* newFrame = malloc(sizeof(struct frameV2));
+                        if (!newFrame) {free(pixels); return 0;}
+                        memcpy(newFrame, sourceFrame, sizeof(struct frameV2));
+                        newFrame->pixels = pixels;
+                        memcpy(pixels, sourceFrame->pixels, frameInfo.width * frameInfo.height);
+                        sourceFrame = newFrame;
+                    }
+                    // todo: set all the non-transparent frames on the frame of this track
+                    // to transparent on our current frame
+
+                    struct frameV2* foreignFrame = imgptrdest->frames[trackstatuses[crtTrack].frame];
+                    uint16_t transp_idx = foreignFrame->transp_idx;
                 }
             }
         }
@@ -263,8 +279,8 @@ uint8_t export_gif(char* filepath, uint8_t export_option) {
         frames_generated++;
     }
     uint64_t time_end = current_time_ms();
-    
+
     debugf(DEBUG_INFO, "Generated %u frames in %u ms.", frames_generated, time_end - time_start);
 
-    return 0;
+    return 1;
 }
