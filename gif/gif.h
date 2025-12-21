@@ -24,7 +24,8 @@ struct TrackStatus {
     uint32_t frame;
     uint8_t dirty;
     uint8_t objectValid;
+    int lastFrameTime;
 };
 
 struct imageV2* parse(const char *filename);
-uint8_t export_gif(char* filepath, uint8_t strategy);
+uint8_t export_gif(char* filepath, uint8_t export_option);

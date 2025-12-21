@@ -329,11 +329,12 @@ int main(int argc, char *argv[]) {
                             break;
                         }
 
-                        case COMMAND_FILE_EXPORT:
-                            // ask user for destination here
-                            export_gif(0, exportMode);
+                        case COMMAND_FILE_EXPORT: {
+                            char* filePath = choose_file(FILETYPE_GIF);
+                            export_gif(filePath, exportMode);
                             messagebox("GrrGif", "This is not yet implemented!", MSGBOX_WARNING);
                             break;
+                        }
                             
                         case COMMAND_ACTION_ADDTRACK: {
                             char* filePath = choose_file(FILETYPE_GIF);

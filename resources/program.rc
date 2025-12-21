@@ -1,8 +1,8 @@
 IDI_APPICON ICON "icon.ico"
 
-VS_VERSION_INFO VERSIONINFO
-    FILEVERSION 0,0,0,0
-    PRODUCTVERSION 0,0,0,0
+1 VERSIONINFO
+    FILEVERSION 0,1,0
+    PRODUCTVERSION 0,0,0
     FILEFLAGSMASK 0x3fL
     FILEFLAGS 0x0L
     FILEOS 0x4L
@@ -14,7 +14,7 @@ VS_VERSION_INFO VERSIONINFO
             BEGIN
                 VALUE "CompanyName", "Bytey Wolf"
                 VALUE "FileDescription", "Lightweight GIF editor"
-                VALUE "FileVersion", "0.0"
+                VALUE "FileVersion", "0.1.0"
                 VALUE "ProductName", "GrrGif"
                 VALUE "LegalCopyright", "(c) 2025 Bytey Wolf. All Rights Reserved."
             END

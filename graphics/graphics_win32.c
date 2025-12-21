@@ -507,7 +507,7 @@ char* choose_file(uint8_t type) {
     ofn.lpstrFile = szFileName;
     ofn.nMaxFile = 511;
     ofn.lpstrTitle = "Select a file";
-    ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+    ofn.Flags = OFN_PATHMUSTEXIST;
     if (GetOpenFileName(&ofn)) {
         return szFileName; }
     else
